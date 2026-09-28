@@ -267,6 +267,34 @@ export const api = {
     return { path: (await app.store.get('studio.parent')) ?? null };
   },
 
+  // Every tinyjs project in the chosen folder: readDir + tinyjs.json parse,
+  // icon inlined as a dataURL (the page can't read arbitrary file:// paths).
+  async listProjects({ parent }) {
+    const projects = [];
+    try {
+      const iter = await tjs.readDir(parent);
+      for await (const e of iter) {
+        if (!e.isDirectory || e.name.startsWith('.')) continue;
+        try {
+          const cfg = JSON.parse(dec.decode(await tjs.readFile(parent + '/' + e.name + '/tinyjs.json')));
+          let icon = null;
+          try {
+            const bytes = new Uint8Array(await tjs.readFile(parent + '/' + e.name + '/icon.png'));
+            if (bytes.length <= 512 * 1024) icon = 'data:image/png;base64,' + toBase64(bytes);
+          } catch { }
+          projects.push({
+            dir: e.name,
+            title: cfg.title ?? cfg.name ?? e.name,
+            url: cfg.url ?? null,
+            icon,
+          });
+        } catch { /* a folder without tinyjs.json isn't a project */ }
+      }
+    } catch { /* folder gone since it was picked */ }
+    projects.sort((a, b) => a.dir.localeCompare(b.dir));
+    return { projects };
+  },
+
   // Show the project in Finder / Explorer / the file manager.
   async reveal({ dir }) {
     const argv = IS_WIN ? ['explorer.exe', dir]

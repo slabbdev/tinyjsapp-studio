@@ -76,6 +76,7 @@ tiny.api.on('done', ({ label, code }) => {
   state.parent = path;
   $('folderPath').textContent = path;
   $('folderPath').classList.remove('muted');
+  loadProjects();
 })();
 
 $('pickFolder').addEventListener('click', async () => {
@@ -85,7 +86,38 @@ $('pickFolder').addEventListener('click', async () => {
   $('folderPath').textContent = dir;
   $('folderPath').classList.remove('muted');
   tiny.api.call('saveFolder', { path: dir });
+  loadProjects();
 });
+
+// --- your projects: every tinyjs project in the chosen folder --------------
+
+async function loadProjects() {
+  if (!state.parent) return;
+  const { projects } = await tiny.api.call('listProjects', { parent: state.parent });
+  const wrap = $('projCards');
+  wrap.innerHTML = '';
+  $('projects').hidden = false;
+  $('projCount').textContent = projects.length
+    ? projects.length + ' in ' + state.parent
+    : 'none here yet — create or wrap one';
+  for (const p of projects) {
+    const card = document.createElement('button');
+    card.className = 'card' + (state.project === state.parent + '/' + p.dir ? ' active' : '');
+    const visual = p.icon
+      ? `<img src="${p.icon}" alt="">`
+      : `<span class="ph">${(p.title[0] ?? '?').toUpperCase()}</span>`;
+    card.innerHTML = `${visual}<span class="t"></span><span class="s"></span>`;
+    card.querySelector('.t').textContent = p.title;
+    card.querySelector('.s').textContent = p.url
+      ? new URL(p.url).hostname : 'local app';
+    card.addEventListener('click', () => {
+      setProject(state.parent + '/' + p.dir);
+      loadProjects();
+    });
+    wrap.appendChild(card);
+  }
+}
+$('btnRescan').addEventListener('click', loadProjects);
 
 async function chooseIcon(dir) {
   const file = await tiny.dialog.openFile({ types: ['png', 'ico'] });
@@ -127,7 +159,10 @@ $('btnCreate').addEventListener('click', async () => {
       parent: state.parent, name, template: $('template').value,
       frameless: $('createFrameless').checked,
     });
-    if (code === 0) setProject(state.parent + '/' + name);
+    if (code === 0) {
+      setProject(state.parent + '/' + name);
+      loadProjects();
+    }
   } catch (e) {
     log(String(e.message ?? e), 'err');
     busy(false);
@@ -161,7 +196,10 @@ $('btnWrap').addEventListener('click', async () => {
     const { code } = await tiny.api.call('wrap', {
       parent: state.parent, url, dir, frameless: $('wrapFrameless').checked,
     });
-    if (code === 0) setProject(state.parent + '/' + dir);
+    if (code === 0) {
+      setProject(state.parent + '/' + dir);
+      loadProjects();
+    }
   } catch (e) {
     log(String(e.message ?? e), 'err');
     busy(false);
