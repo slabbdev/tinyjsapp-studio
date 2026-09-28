@@ -6,6 +6,8 @@
 
 const IS_WIN = tjs.env.OS === 'Windows_NT';
 const IS_LINUX = tjs.env.OS === 'Linux';
+const enc = new TextEncoder();
+const dec = new TextDecoder();
 
 let binPath = null; // resolved once, cached
 let child = null; // the one long-running command (dev), if any
@@ -143,6 +145,47 @@ async function writeIcon(dir, bytes) {
   await tjs.writeFile(dir.replace(/[\\/]+$/, '') + '/icon.png', bytes);
 }
 
+// A frameless window with no titlebar of its own can't be moved — so
+// "frameless" generates this starter inject: a drag strip along the top edge,
+// plus window buttons where the OS supplies none (Windows/Linux; macOS gets
+// its native traffic lights). document-start, every window.
+const DRAG_STRIP = `// Frameless starter: a drag strip along the top edge so the window moves,
+// plus window buttons where the OS supplies none (Windows/Linux). Delete
+// this file and the "inject" key in tinyjs.json once you have your own
+// titlebar.
+(() => {
+  const bar = document.createElement('div');
+  bar.setAttribute('data-tiny-drag', '');
+  bar.style.cssText =
+    'position:fixed;top:0;left:0;right:0;height:26px;z-index:2147483647;' +
+    'display:flex;align-items:center;justify-content:flex-end;gap:8px;' +
+    'padding:0 10px';
+  if (!/Mac/i.test(navigator.platform)) {
+    for (const [label, verb] of [['–', 'minimize'], ['×', 'close']]) {
+      const b = document.createElement('button');
+      b.textContent = label;
+      b.style.cssText = 'width:18px;height:18px;border:0;border-radius:50%;' +
+        'background:#2a3040;color:#e8eaf0;font:12px/1 sans-serif;cursor:pointer';
+      b.addEventListener('click', () => window.tiny?.win[verb]());
+      bar.appendChild(b);
+    }
+  }
+  document.documentElement.appendChild(bar);
+})();
+`;
+
+// Patch a generated project for frameless mode: chrome + the drag-strip
+// inject, written after the CLI has produced its tinyjs.json.
+async function applyFrameless(dir) {
+  const root = dir.replace(/[\\/]+$/, '');
+  const p = root + '/tinyjs.json';
+  const cfg = JSON.parse(dec.decode(await tjs.readFile(p)));
+  cfg.chrome = { ...(cfg.chrome ?? {}), frame: false };
+  cfg.inject = 'inject.js';
+  await tjs.writeFile(p, enc.encode(JSON.stringify(cfg, null, 2) + '\n'));
+  await tjs.writeFile(root + '/inject.js', enc.encode(DRAG_STRIP));
+}
+
 export const api = {
   // Status bar: which CLI the Studio will drive, and its version.
   async resolve() {
@@ -160,24 +203,30 @@ export const api = {
   },
 
   // tinyjs new <name> — runs inside the chosen projects folder.
-  async create({ parent, name, template }, app) {
+  async create({ parent, name, template, frameless }, app) {
     const argv = ['new', name];
     if (template && template !== 'vanilla') argv.push('--template', template);
     const r = await runStreaming(app, argv, { cwd: parent, label: 'create' });
-    if (r.code === 0 && pendingIcon) {
-      await writeIcon(parent + '/' + name, pendingIcon);
+    if (r.code === 0) {
+      const dir = parent + '/' + name;
+      if (frameless) await applyFrameless(dir);
+      if (pendingIcon) await writeIcon(dir, pendingIcon);
     }
     return r;
   },
 
   // tinyjs wrap <url> <dir> — needs a tinyjs with the wrap command.
-  async wrap({ parent, url, dir, ua }, app) {
+  async wrap({ parent, url, dir, ua, frameless }, app) {
     const argv = ['wrap', url, dir];
     if (ua) argv.push('--ua', ua);
     const r = await runStreaming(app, argv, { cwd: parent, label: 'wrap' });
-    if (r.code === 0 && pendingIcon) {
-      // The user's pick beats whatever the site advertises.
-      await writeIcon(parent + '/' + dir, pendingIcon);
+    if (r.code === 0) {
+      const root = parent + '/' + dir;
+      if (frameless) await applyFrameless(root);
+      if (pendingIcon) {
+        // The user's pick beats whatever the site advertises.
+        await writeIcon(root, pendingIcon);
+      }
     }
     return r;
   },

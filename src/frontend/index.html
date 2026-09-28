@@ -12,7 +12,6 @@
       <h1>TinyJS Studio</h1>
     </div>
     <div id="status" class="status">looking for the tinyjs CLI…</div>
-    <button id="btnTitlebar" class="ghost" title="Toggle the native titlebar">Titlebar: hidden</button>
     <div class="wincontrols">
       <button id="btnMin" title="Minimize"></button>
       <button id="btnMax" title="Zoom"></button>
@@ -56,6 +55,10 @@
             <option value="solid-ts">solid-ts — Vite + npm</option>
           </select>
         </div>
+        <div class="field">
+          <label>Window</label>
+          <label class="check"><input type="checkbox" id="createFrameless" checked> frameless</label>
+        </div>
         <button id="btnCreate" class="primary">Create project</button>
       </div>
       <p class="hint">Zero-dependency templates need nothing but tinyjs. The Vite
@@ -72,12 +75,17 @@
           <label for="wrapName">Folder</label>
           <input id="wrapName" type="text" placeholder="auto" spellcheck="false">
         </div>
+        <div class="field">
+          <label>Window</label>
+          <label class="check"><input type="checkbox" id="wrapFrameless" checked> frameless</label>
+        </div>
         <button id="btnWrap" class="primary">Wrap site</button>
       </div>
       <p class="hint">Turns the site into a real desktop app: native window,
       downloads, popup handling — and the site gets <strong>no</strong> access
-      to your machine beyond dialogs and its own window. Needs a tinyjs with
-      the <code>wrap</code> command (see README).</p>
+      to your machine beyond dialogs and its own window. Frameless injects a
+      drag strip so the window stays movable. Needs a tinyjs with the
+      <code>wrap</code> command (see README).</p>
     </section>
 
     <section id="project" class="pane project" hidden>

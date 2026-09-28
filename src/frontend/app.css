@@ -55,15 +55,16 @@ body.mac .wincontrols { display: none; }
 #btnMin:hover { background: #f2c94c; border-color: #f2c94c; }
 #btnMax:hover { background: #4cc38a; border-color: #4cc38a; }
 
-button.ghost {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--muted);
-  padding: 4px 10px;
-  border-radius: 6px;
+label.check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text);
+  height: 35px;
+  cursor: pointer;
 }
-/* native titlebar mode: the OS chrome has its own buttons */
-body.bar .wincontrols { display: none; }
+label.check input { width: auto; min-width: 0; margin: 0; }
 
 .brand { display: flex; align-items: center; gap: 10px; }
 .brand .dot {

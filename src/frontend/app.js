@@ -7,19 +7,18 @@ const $ = (id) => document.getElementById(id);
 const isMac = tiny.system.isMacOS();
 document.body.classList.toggle('mac', isMac);
 
-// Titlebar preference, persisted: 'frameless' (default) or 'native'. The
-// tinyjs.json chrome is the pre-paint default; this applies the stored
-// choice on load and toggles live afterwards.
-let titlebar = (await tiny.store.get('titlebar')) === 'native' ? 'native' : 'frameless';
-async function applyTitlebar() {
-  const native = titlebar === 'native';
-  document.body.classList.toggle('bar', native);
-  $('btnTitlebar').textContent = native ? 'Titlebar: shown' : 'Titlebar: hidden';
-  await tiny.win.setChrome(native
-    ? { frame: true }
-    : { frame: false, windowControls: isMac });
+// Frameless preference for GENERATED projects, persisted. Frameless writes
+// chrome + a drag-strip inject into the project (see backend).
+function setFrameless(v) {
+  $('wrapFrameless').checked = v;
+  $('createFrameless').checked = v;
+  tiny.store.set('studio.frameless', v);
 }
-await applyTitlebar();
+(async () => {
+  if ((await tiny.store.get('studio.frameless')) === false) setFrameless(false);
+})();
+$('wrapFrameless').addEventListener('change', () => setFrameless($('wrapFrameless').checked));
+$('createFrameless').addEventListener('change', () => setFrameless($('createFrameless').checked));
 
 const state = {
   parent: null,   // where new projects are created
@@ -126,6 +125,7 @@ $('btnCreate').addEventListener('click', async () => {
   try {
     const { code } = await tiny.api.call('create', {
       parent: state.parent, name, template: $('template').value,
+      frameless: $('createFrameless').checked,
     });
     if (code === 0) setProject(state.parent + '/' + name);
   } catch (e) {
@@ -158,7 +158,9 @@ $('btnWrap').addEventListener('click', async () => {
   busy(true);
   log(`— tinyjs wrap ${url} —`);
   try {
-    const { code } = await tiny.api.call('wrap', { parent: state.parent, url, dir });
+    const { code } = await tiny.api.call('wrap', {
+      parent: state.parent, url, dir, frameless: $('wrapFrameless').checked,
+    });
     if (code === 0) setProject(state.parent + '/' + dir);
   } catch (e) {
     log(String(e.message ?? e), 'err');
@@ -196,12 +198,6 @@ $('btnBuild').addEventListener('click', async () => {
 $('btnReveal').addEventListener('click', () => tiny.api.call('reveal', { dir: state.project }));
 
 // --- window buttons (Windows/Linux; macOS keeps its traffic lights) -------
-
-$('btnTitlebar').addEventListener('click', async () => {
-  titlebar = titlebar === 'native' ? 'frameless' : 'native';
-  await tiny.store.set('titlebar', titlebar);
-  await applyTitlebar();
-});
 
 $('btnMin').addEventListener('click', () => tiny.win.minimize());
 $('btnMax').addEventListener('click', () => tiny.win.zoom());
