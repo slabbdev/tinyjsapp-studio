@@ -9,6 +9,7 @@ const IS_LINUX = tjs.env.OS === 'Linux';
 
 let binPath = null; // resolved once, cached
 let child = null; // the one long-running command (dev), if any
+let pendingIcon = null; // PNG bytes from the picker, applied to the next create/wrap
 
 // How the CLI is found, in order:
 //   1. TINYJS_BIN env var
@@ -103,6 +104,45 @@ async function runStreaming(app, argv, { cwd, label } = {}) {
   return { code };
 }
 
+// --- icon picker ------------------------------------------------------------
+// Only PNG (and ICO, unwrapped to its inner PNG — sips refuses the container)
+// so the bytes land as icon.png and every platform's icon pipeline stays
+// happy. JPEG/WebP site icons still come through the CLI's own fetch path.
+
+function icoPng(b) {
+  const count = b[4] | (b[5] << 8);
+  let best = null;
+  for (let i = 0; i < count; i++) {
+    const e = 6 + 16 * i;
+    const size = b[e + 8] | (b[e + 9] << 8) | (b[e + 10] << 16) | (b[e + 11] << 24);
+    const off = b[e + 12] | (b[e + 13] << 8) | (b[e + 14] << 16) | (b[e + 15] << 24);
+    const w = b[e] || 256, h = b[e + 1] || 256;
+    if (!best || w * h > best.w * best.h) best = { w, h, size, off };
+  }
+  if (!best) return null;
+  const img = b.subarray(best.off, best.off + best.size);
+  return img[0] === 0x89 && img[1] === 0x50 ? img : null;
+}
+
+function sniffPngOrIco(b) {
+  const is = (m) => m.every((byte, i) => b[i] === byte);
+  if (is([0x89, 0x50])) return b;
+  if (is([0x00, 0x00, 0x01, 0x00])) return icoPng(b);
+  return null;
+}
+
+const toBase64 = (bytes) => {
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(s);
+};
+
+async function writeIcon(dir, bytes) {
+  await tjs.writeFile(dir.replace(/[\\/]+$/, '') + '/icon.png', bytes);
+}
+
 export const api = {
   // Status bar: which CLI the Studio will drive, and its version.
   async resolve() {
@@ -123,14 +163,23 @@ export const api = {
   async create({ parent, name, template }, app) {
     const argv = ['new', name];
     if (template && template !== 'vanilla') argv.push('--template', template);
-    return runStreaming(app, argv, { cwd: parent, label: 'create' });
+    const r = await runStreaming(app, argv, { cwd: parent, label: 'create' });
+    if (r.code === 0 && pendingIcon) {
+      await writeIcon(parent + '/' + name, pendingIcon);
+    }
+    return r;
   },
 
   // tinyjs wrap <url> <dir> — needs a tinyjs with the wrap command.
   async wrap({ parent, url, dir, ua }, app) {
     const argv = ['wrap', url, dir];
     if (ua) argv.push('--ua', ua);
-    return runStreaming(app, argv, { cwd: parent, label: 'wrap' });
+    const r = await runStreaming(app, argv, { cwd: parent, label: 'wrap' });
+    if (r.code === 0 && pendingIcon) {
+      // The user's pick beats whatever the site advertises.
+      await writeIcon(parent + '/' + dir, pendingIcon);
+    }
+    return r;
   },
 
   // tinyjs dev / build inside the project — dev keeps running until Stop.
@@ -145,6 +194,28 @@ export const api = {
     if (!child) return { stopped: false };
     try { child.kill('SIGTERM'); } catch { }
     return { stopped: true };
+  },
+
+  // Icon picker: validate the chosen file, remember it for the next
+  // create/wrap (it beats whatever the site advertises), hand back a preview
+  // — and with `dir`, write it straight into an existing project.
+  async setIcon({ path, dir }) {
+    const img = sniffPngOrIco(new Uint8Array(await tjs.readFile(path)));
+    if (!img) {
+      throw new Error('not a usable icon — pick a PNG, or an .ico (unwrapped automatically)');
+    }
+    pendingIcon = img;
+    if (dir) await writeIcon(dir, img);
+    return { dataUrl: 'data:image/png;base64,' + toBase64(img) };
+  },
+
+  // The projects folder survives restarts.
+  async saveFolder(params, app) {
+    await app.store.set('studio.parent', params.path ?? null);
+    return true;
+  },
+  async loadFolder(params, app) {
+    return { path: (await app.store.get('studio.parent')) ?? null };
   },
 
   // Show the project in Finder / Explorer / the file manager.

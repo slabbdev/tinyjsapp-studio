@@ -69,7 +69,15 @@ tiny.api.on('done', ({ label, code }) => {
   log(`— ${label} finished (exit ${code ?? '?'}) —`, code === 0 ? 'ok' : 'err');
 });
 
-// --- shared: projects folder ---------------------------------------------
+// --- shared: projects folder (remembered) + project icon -------------------
+
+(async () => {
+  const { path } = await tiny.api.call('loadFolder');
+  if (!path) return;
+  state.parent = path;
+  $('folderPath').textContent = path;
+  $('folderPath').classList.remove('muted');
+})();
 
 $('pickFolder').addEventListener('click', async () => {
   const dir = await tiny.dialog.pickFolder();
@@ -77,7 +85,23 @@ $('pickFolder').addEventListener('click', async () => {
   state.parent = dir;
   $('folderPath').textContent = dir;
   $('folderPath').classList.remove('muted');
+  tiny.api.call('saveFolder', { path: dir });
 });
+
+async function chooseIcon(dir) {
+  const file = await tiny.dialog.openFile({ types: ['png', 'ico'] });
+  if (!file) return;
+  try {
+    const { dataUrl } = await tiny.api.call('setIcon', dir ? { path: file, dir } : { path: file });
+    $('iconPrev').innerHTML = `<img src="${dataUrl}" alt="">`;
+    log(dir ? 'icon written to the project' :
+      'icon ready — it will be used by the next project you create or wrap', 'ok');
+  } catch (e) {
+    log(String(e.message ?? e), 'err');
+  }
+}
+$('btnIconPick').addEventListener('click', () => chooseIcon());
+$('btnIconProject').addEventListener('click', () => state.project && chooseIcon(state.project));
 
 // --- tabs ------------------------------------------------------------------
 
