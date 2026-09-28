@@ -225,13 +225,15 @@ export const api = {
     return r;
   },
 
-  // tinyjs wrap <url> <dir> — needs a tinyjs with the wrap command.
-  async wrap({ parent, url, dir, ua, frameless }, app) {
+  // tinyjs wrap <url> <dir> — needs a tinyjs with the wrap command. An
+  // optional display title overrides the site's own <title> afterwards.
+  async wrap({ parent, url, dir, title, ua, frameless }, app) {
     const argv = ['wrap', url, dir];
     if (ua) argv.push('--ua', ua);
     const r = await runStreaming(app, argv, { cwd: parent, label: 'wrap' });
     if (r.code === 0) {
       const root = parent + '/' + dir;
+      if (title) await patchTitle(root, title);
       if (frameless) await applyFrameless(root);
       if (pendingIcon) {
         // The user's pick beats whatever the site advertises.

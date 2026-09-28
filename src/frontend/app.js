@@ -196,7 +196,9 @@ $('btnWrap').addEventListener('click', async () => {
   log(`— tinyjs wrap ${url} —`);
   try {
     const { code } = await tiny.api.call('wrap', {
-      parent: state.parent, url, dir, frameless: $('wrapFrameless').checked,
+      parent: state.parent, url, dir,
+      title: $('wrapTitle').value.trim() || undefined,
+      frameless: $('wrapFrameless').checked,
     });
     if (code === 0) {
       setProject(state.parent + '/' + dir);
