@@ -15,6 +15,9 @@ terminal. Built **with** tinyjs itself, which makes it the two things at once:
 Built by [@slabbdev](https://github.com/slabbdev). Not an official tinyjs
 project — just what its author considers the demo tinyjs deserved. 🙂
 
+![TinyJS App Studio — the Wrap a website tab, with a wrapped project in the
+projects strip](screenshot.png)
+
 ## What it does
 
 - **Create an app** — runs `tinyjs new` for you: the zero-dependency vanilla

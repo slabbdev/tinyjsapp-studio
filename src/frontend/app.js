@@ -245,4 +245,4 @@ $('btnMin').addEventListener('click', () => tiny.win.minimize());
 $('btnMax').addEventListener('click', () => tiny.win.zoom());
 $('btnClose').addEventListener('click', () => tiny.win.close());
 
-log('TinyJS Studio ready.', 'ok');
+log('TinyJS App Studio ready.', 'ok');
