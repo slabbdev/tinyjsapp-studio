@@ -33,7 +33,7 @@ function log(line, cls) {
     el.classList.remove('muted');
   }
   const span = document.createElement('span');
-  if (cls) span.className = cls;
+  span.className = cls ?? (line.startsWith('[err]') ? 'err' : undefined);
   span.textContent = line + '\n';
   el.appendChild(span);
   while (el.childNodes.length > 600) el.removeChild(el.firstChild);

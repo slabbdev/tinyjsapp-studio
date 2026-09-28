@@ -1,4 +1,4 @@
-# TinyJS Studio
+# TinyJS App Studio
 
 A tiny desktop companion for [tinyjs](https://github.com/tarwin/tinyjsapp) —
 create tinyjs apps and turn websites into desktop apps, without opening a
