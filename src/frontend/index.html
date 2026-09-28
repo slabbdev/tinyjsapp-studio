@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TinyJS Studio</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <header data-tiny-drag>
+    <div class="brand">
+      <span class="dot"></span>
+      <h1>TinyJS Studio</h1>
+    </div>
+    <div id="status" class="status">looking for the tinyjs CLI…</div>
+    <button id="btnTitlebar" class="ghost" title="Toggle the native titlebar">Titlebar: hidden</button>
+    <div class="wincontrols">
+      <button id="btnMin" title="Minimize"></button>
+      <button id="btnMax" title="Zoom"></button>
+      <button id="btnClose" title="Close"></button>
+    </div>
+  </header>
+
+  <section class="folder-row">
+    <label>Projects folder</label>
+    <button id="pickFolder">Choose…</button>
+    <span id="folderPath" class="path muted">pick where new projects live</span>
+  </section>
+
+  <nav class="tabs">
+    <button class="tab" data-tab="create">Create an app</button>
+    <button class="tab active" data-tab="wrap">Wrap a website</button>
+  </nav>
+
+  <main>
+    <section id="tab-create" class="pane" hidden>
+      <div class="row">
+        <div class="field grow">
+          <label for="appName">App name</label>
+          <input id="appName" type="text" placeholder="myapp" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="template">Template</label>
+          <select id="template">
+            <option value="vanilla">vanilla — zero dependencies</option>
+            <option value="vanilla-ts">vanilla-ts — zero deps, typed</option>
+            <option value="react-ts">react-ts — Vite + npm</option>
+            <option value="vue-ts">vue-ts — Vite + npm</option>
+            <option value="svelte-ts">svelte-ts — Vite + npm</option>
+            <option value="solid-ts">solid-ts — Vite + npm</option>
+          </select>
+        </div>
+        <button id="btnCreate" class="primary">Create project</button>
+      </div>
+      <p class="hint">Zero-dependency templates need nothing but tinyjs. The Vite
+      ones run <code>npm install</code> for you.</p>
+    </section>
+
+    <section id="tab-wrap" class="pane">
+      <div class="row">
+        <div class="field grow">
+          <label for="wrapUrl">Site URL</label>
+          <input id="wrapUrl" type="text" placeholder="https://airtable.com" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="wrapName">Folder</label>
+          <input id="wrapName" type="text" placeholder="auto" spellcheck="false">
+        </div>
+        <button id="btnWrap" class="primary">Wrap site</button>
+      </div>
+      <p class="hint">Turns the site into a real desktop app: native window,
+      downloads, popup handling — and the site gets <strong>no</strong> access
+      to your machine beyond dialogs and its own window. Needs a tinyjs with
+      the <code>wrap</code> command (see README).</p>
+    </section>
+
+    <section id="project" class="pane project" hidden>
+      <div class="row">
+        <span id="projPath" class="path"></span>
+        <span class="grow"></span>
+        <button id="btnRun">Run (dev)</button>
+        <button id="btnStop" disabled>Stop</button>
+        <button id="btnBuild">Build</button>
+        <button id="btnReveal">Reveal</button>
+      </div>
+    </section>
+
+    <pre id="log" class="log muted">logs will stream here…</pre>
+  </main>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
