@@ -186,6 +186,14 @@ async function applyFrameless(dir) {
   await tjs.writeFile(root + '/inject.js', enc.encode(DRAG_STRIP));
 }
 
+// The displayed name (menu bar, dock, titlebar) is tinyjs.json "title".
+async function patchTitle(dir, title) {
+  const p = dir.replace(/[\\/]+$/, '') + '/tinyjs.json';
+  const cfg = JSON.parse(dec.decode(await tjs.readFile(p)));
+  cfg.title = String(title).trim().slice(0, 60);
+  await tjs.writeFile(p, enc.encode(JSON.stringify(cfg, null, 2) + '\n'));
+}
+
 export const api = {
   // Status bar: which CLI the Studio will drive, and its version.
   async resolve() {
@@ -202,13 +210,15 @@ export const api = {
     return { found: true, bin, version };
   },
 
-  // tinyjs new <name> — runs inside the chosen projects folder.
-  async create({ parent, name, template, frameless }, app) {
+  // tinyjs new <name> — runs inside the chosen projects folder. An optional
+  // display title (what the OS shows) is patched into tinyjs.json after.
+  async create({ parent, name, title, template, frameless }, app) {
     const argv = ['new', name];
     if (template && template !== 'vanilla') argv.push('--template', template);
     const r = await runStreaming(app, argv, { cwd: parent, label: 'create' });
     if (r.code === 0) {
       const dir = parent + '/' + name;
+      if (title && title !== name) await patchTitle(dir, title);
       if (frameless) await applyFrameless(dir);
       if (pendingIcon) await writeIcon(dir, pendingIcon);
     }

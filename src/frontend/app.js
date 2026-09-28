@@ -156,7 +156,9 @@ $('btnCreate').addEventListener('click', async () => {
   log(`— tinyjs new ${name} —`);
   try {
     const { code } = await tiny.api.call('create', {
-      parent: state.parent, name, template: $('template').value,
+      parent: state.parent, name,
+      title: $('appTitle').value.trim() || undefined,
+      template: $('template').value,
       frameless: $('createFrameless').checked,
     });
     if (code === 0) {
