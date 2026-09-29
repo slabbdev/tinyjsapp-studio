@@ -97,7 +97,9 @@ async function loadProjects() {
   const { projects } = state.parent
     ? await tiny.api.call('listProjects', { parent: state.parent })
     : { projects: [] };
+  state.projects = projects;
   $('projCount').textContent = projects.length ? String(projects.length) : '';
+  syncWrapButton();
   if (!projects.length) {
     const empty = document.createElement('div');
     empty.className = 'side-empty muted';
@@ -117,11 +119,40 @@ async function loadProjects() {
       ? new URL(p.url).hostname : 'local app';
     item.addEventListener('click', () => {
       setProject(state.parent + '/' + p.dir);
+      if (p.url) fillWrapForm(p);
       loadProjects();
     });
     list.appendChild(item);
   }
 }
+
+// Clicking a wrapped project restores its configuration in the form, so a
+// change is just: tweak + Wrap site (the wrap overwrites in place).
+function fillWrapForm(p) {
+  document.querySelector('.tab[data-tab="wrap"]').click();
+  $('wrapUrl').value = p.url;
+  $('wrapName').value = p.dir;
+  $('wrapTitle').value = p.title ?? '';
+  $('wrapUA').value = p.uaPreset ?? 'browser';
+  $('wrapBadge').value = p.studio?.badge ?? '';
+  $('wrapExternal').value = (p.studio?.external ?? []).join(', ');
+  $('wrapFrameless').checked = p.frameless;
+  $('wrapMenubar').checked = p.studio?.menubar ?? p.activation === 'accessory';
+  $('wrapAlwaysTop').checked = p.studio?.top ?? false;
+}
+
+// "Wrap site" reads as "Update site" when the folder matches a project.
+function syncWrapButton() {
+  const dir = $('wrapName').value.trim();
+  const known = (state.projects ?? []).some((p) => p.dir === dir);
+  $('btnWrap').textContent = known ? 'Update site' : 'Wrap site';
+}
+$('wrapName').addEventListener('input', syncWrapButton);
+$('wrapUrl').addEventListener('input', () => {
+  const guess = dirFromUrl($('wrapUrl').value.trim());
+  if (guess && !$('wrapName').value) $('wrapName').placeholder = guess;
+  syncWrapButton();
+});
 $('btnRescan').addEventListener('click', loadProjects);
 
 async function chooseIcon(dir) {
@@ -184,11 +215,6 @@ const dirFromUrl = (url) => {
       .replace(/[^a-zA-Z0-9.-]/g, '').replace(/\./g, '-');
   } catch { return ''; }
 };
-
-$('wrapUrl').addEventListener('input', () => {
-  const guess = dirFromUrl($('wrapUrl').value.trim());
-  if (guess) $('wrapName').placeholder = guess;
-});
 
 $('btnWrap').addEventListener('click', async () => {
   if (state.running) return;

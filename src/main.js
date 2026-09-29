@@ -262,9 +262,9 @@ function injectSource({ frameless, badge }) {
 }
 
 // Patch a generated project after the CLI wrote its tinyjs.json: chrome
-// keys and the composed inject. A badge needs one exception to the wrapper
-// preset — app.badge for the wrapped origins, layered as {preset, enable};
-// without a badge the gate stays untouched.
+// keys, the composed inject, the edit-flow record (badge/external for form
+// restore), and the badge's one gate exception. The CLI already persisted
+// menubar/top in cfg.studio.
 async function applyFinishing(dir, opts) {
   const root = dir.replace(/[\\/]+$/, '');
   const p = root + '/tinyjs.json';
@@ -279,6 +279,13 @@ async function applyFinishing(dir, opts) {
     cfg.inject = 'inject.js';
     await tjs.writeFile(root + '/inject.js', enc.encode(inj));
   }
+  cfg.studio = {
+    ...(cfg.studio ?? {}),
+    badge: opts.badge ?? null,
+    external: opts.external
+      ? String(opts.external).split(',').map((s) => s.trim()).filter(Boolean)
+      : null,
+  };
   if (opts.badge && cfg.api?.origins) {
     for (const [origin, gate] of Object.entries(cfg.api.origins)) {
       if (gate === 'wrapper') cfg.api.origins[origin] = { preset: 'wrapper', enable: ['app.badge'] };
@@ -331,7 +338,7 @@ export const api = {
   // badge selector mirrors the site's unread count onto the dock icon; the
   // UA preset ('browser' | 'iphone' | 'engine') counters UA-sniffing.
   async wrap({ parent, url, dir, title, ua, uaPreset, frameless, badge, menubar, alwaysTop, external }, app) {
-    const argv = ['wrap', url, dir];
+    const argv = ['wrap', url, dir, '--force']; // the Studio edits in place
     const resolved = resolveUA(uaPreset, ua);
     if (resolved) argv.push('--ua', resolved);
     if (menubar) argv.push('--menubar');
@@ -341,7 +348,7 @@ export const api = {
     if (r.code === 0) {
       const root = parent + '/' + dir;
       if (title) await patchTitle(root, title);
-      await applyFinishing(root, { frameless, badge });
+      await applyFinishing(root, { frameless, badge, external });
       if (pendingIcon) {
         // The user's pick beats whatever the site advertises.
         await writeIcon(root, pendingIcon);
@@ -401,11 +408,20 @@ export const api = {
             const bytes = new Uint8Array(await tjs.readFile(parent + '/' + e.name + '/icon.png'));
             if (bytes.length <= 512 * 1024) icon = 'data:image/png;base64,' + toBase64(bytes);
           } catch { }
+          // uaPreset reverse-maps the stored UA back to the form's select so
+          // a project click restores the exact wrap configuration.
+          const ua = cfg.userAgent ?? null;
           projects.push({
             dir: e.name,
             title: cfg.title ?? cfg.name ?? e.name,
             url: cfg.url ?? null,
             icon,
+            uaPreset: ua === null ? 'engine'
+              : ua === SAFARI_MAC || ua === EDGE_WIN ? 'browser'
+              : ua === SAFARI_IPHONE ? 'iphone' : 'browser',
+            frameless: cfg.chrome?.frame === false,
+            studio: cfg.studio ?? {},
+            activation: cfg.activation ?? null,
           });
         } catch { /* a folder without tinyjs.json isn't a project */ }
       }
