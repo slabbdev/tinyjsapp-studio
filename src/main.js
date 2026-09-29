@@ -404,7 +404,8 @@ export const api = {
 
   // Every tinyjs project in the chosen folder: readDir + tinyjs.json parse,
   // icon inlined as a dataURL (the page can't read arbitrary file:// paths).
-  async listProjects({ parent, app }) {
+  async listProjects(params, app) {
+    const parent = params.parent;
     const projects = [];
     const pushProject = async (abs, dir, cfg) => {
       let icon = null;
@@ -480,7 +481,8 @@ export const api = {
   // Open an EXISTING tinyjs project anywhere on disk: validated, then kept
   // in the store so it lists alongside the folder's projects (no files are
   // moved or copied).
-  async addExisting({ dir }) {
+  async addExisting(params, app) {
+    const dir = params.dir;
     const root = String(dir ?? '').replace(/[\\/]+$/, '');
     const p = root + '/tinyjs.json';
     let cfg;
@@ -496,7 +498,8 @@ export const api = {
     return { dir: root, title: cfg.title ?? cfg.name ?? root.split('/').pop() };
   },
 
-  async removeExternal({ dir }) {
+  async removeExternal(params, app) {
+    const dir = params.dir;
     const list = ((await app.store.get('studio.external')) ?? []).filter((d) => d !== dir);
     await app.store.set('studio.external', list);
     return true;
