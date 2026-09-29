@@ -370,8 +370,18 @@ export const api = {
   async run({ dir }, app) {
     return runStreaming(app, ['dev'], { cwd: dir, label: 'dev' });
   },
-  async build({ dir }, app) {
-    return runStreaming(app, ['build'], { cwd: dir, label: 'build' });
+  async build({ dir, target }, app) {
+    const argv = ['build'];
+    // arch/universal/dmg targets are macOS-only — other platforms build
+    // natively for themselves and the flags are ignored.
+    if (!IS_WIN && !IS_LINUX) {
+      if (target === 'arm64') argv.push('--arch', 'arm64');
+      else if (target === 'x86_64') argv.push('--arch', 'x86_64');
+      else if (target === 'universal') argv.push('--universal');
+      else if (target === 'universal-dmg') argv.push('--universal', '--dmg');
+      else if (target === 'dmg') argv.push('--dmg');
+    }
+    return runStreaming(app, argv, { cwd: dir, label: 'build' });
   },
 
   async stop() {

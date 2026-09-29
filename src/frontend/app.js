@@ -342,6 +342,19 @@ $('btnNew').addEventListener('click', () => {
   log('— fresh ' + (state.source === 'wrap' ? 'wrap' : 'app') + ' — fill the form and go', 'ok');
 });
 
+// the build-target select only makes sense on macOS (arch/universal/dmg)
+$('buildTarget').hidden = !isMac;
+
+$('btnBuild').addEventListener('click', async () => {
+  if (state.running) return;
+  if (!state.project) { log('select a project first', 'err'); return; }
+  busy(true);
+  const target = isMac ? $('buildTarget').value : 'platform';
+  log(`— tinyjs build${target !== 'platform' ? ' (' + target + ')' : ''} —`);
+  try { await tiny.api.call('build', { dir: state.project, target }); }
+  catch (e) { log(String(e.message ?? e), 'err'); busy(false); }
+});
+
 $('btnRun').addEventListener('click', async () => {
   if (state.running) return;
   if (!state.project) { log('select a project or fill the form first', 'err'); return; }
@@ -363,14 +376,6 @@ $('btnRun').addEventListener('click', async () => {
 });
 
 $('btnStop').addEventListener('click', () => tiny.api.call('stop'));
-
-$('btnBuild').addEventListener('click', async () => {
-  if (state.running) return;
-  busy(true);
-  log('— tinyjs build —');
-  try { await tiny.api.call('build', { dir: state.project }); }
-  catch (e) { log(String(e.message ?? e), 'err'); busy(false); }
-});
 
 $('btnReveal').addEventListener('click', () => tiny.api.call('reveal', { dir: state.project }));
 

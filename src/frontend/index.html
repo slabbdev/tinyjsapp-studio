@@ -38,7 +38,14 @@
       <section id="project" class="toolbar" hidden>
         <button id="btnRun" class="primary" data-tip="Apply the form, then run (dev)"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M4.2 2.6a.7.7 0 0 1 1.05-.6l8.2 4.9a.7.7 0 0 1 0 1.2l-8.2 4.9a.7.7 0 0 1-1.05-.6z"/></svg>Run</button>
         <button id="btnStop" data-tip="Stop the dev server" disabled><svg viewBox="0 0 16 16" fill="currentColor"><rect x="3.5" y="3.5" width="9" height="9" rx="1.2"/></svg></button>
-        <button id="btnBuild" data-tip="Build the distributable .app"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M1.8 4.6 8 1.6l6.2 3v6.8L8 14.4l-6.2-3z"/><path d="M1.8 4.6 8 7.6l6.2-3M8 7.6v6.8"/></svg></button>
+        <button id="btnBuild" data-tip="Build for the selected target"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M1.8 4.6 8 1.6l6.2 3v6.8L8 14.4l-6.2-3z"/><path d="M1.8 4.6 8 7.6l6.2-3M8 7.6v6.8"/></svg>Build</button>
+        <select id="buildTarget" class="mini" data-tip="Build target">
+          <option value="platform" selected>this platform</option>
+          <option value="arm64">macOS · Apple Silicon</option>
+          <option value="x86_64">macOS · Intel</option>
+          <option value="universal">macOS · universal</option>
+          <option value="universal-dmg">macOS · universal + DMG</option>
+        </select>
         <button id="btnDuplicate" data-tip="Duplicate — same site, separate container (multi-account)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="5.5" y="5.5" width="9" height="9" rx="1.5"/><path d="M10.5 3.5v-1a1 1 0 0 0-1-1h-7a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h1" stroke-linecap="round"/></svg></button>
         <button id="btnIconProject" data-tip="Replace the app icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="1.8" y="1.8" width="12.4" height="12.4" rx="2"/><circle cx="5.6" cy="5.6" r="1.4"/><path d="m14 10.5-3.2-3.2-6 6" stroke-linecap="round"/></svg></button>
         <button id="btnReveal" data-tip="Show the project folder"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M1.8 3.2h4.4l1.6 1.8h6.4v7.8H1.8z"/></svg></button>
