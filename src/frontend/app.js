@@ -124,6 +124,7 @@ async function loadProjects() {
     });
     list.appendChild(item);
   }
+  renderPreview();
 }
 
 // Clicking a wrapped project restores its configuration in the form, so a
@@ -141,6 +142,7 @@ function fillWrapForm(p) {
   $('wrapTray').hidden = !$('wrapMenubar').checked;
   $('wrapTray').value = p.studio?.panel ? 'panel' : 'window';
   $('wrapAlwaysTop').checked = p.studio?.top ?? false;
+  renderPreview();
 }
 
 // "Wrap site" reads as "Update site" when the folder matches a project.
@@ -180,6 +182,7 @@ document.querySelectorAll('.tab').forEach((tab) => {
     tab.classList.add('active');
     $('tab-create').hidden = tab.dataset.tab !== 'create';
     $('tab-wrap').hidden = tab.dataset.tab !== 'wrap';
+    renderPreview();
   });
 });
 
@@ -325,4 +328,96 @@ $('btnMin').addEventListener('click', () => tiny.win.minimize());
 $('btnMax').addEventListener('click', () => tiny.win.zoom());
 $('btnClose').addEventListener('click', () => tiny.win.close());
 
+// --- live preview: a fake app window mirroring the active config -----------
+
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g,
+  (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function mockIcon(p, size) {
+  const cls = 'mk-icon' + (p?.icon ? '' : ' ph');
+  const inner = p?.icon
+    ? `<img class="${cls}" style="width:${size}px;height:${size}px" src="${p.icon}" alt="">`
+    : `<span class="${cls}" style="width:${size}px;height:${size}px">${esc((p?.title ?? '?')[0].toUpperCase())}</span>`;
+  return inner;
+}
+
+function mockSite(p, host, badge) {
+  return `<div class="mk-content">
+    <div class="mk-fav">${mockIcon(p, 34)}${badge ? '<span class="mk-badge">3</span>' : ''}</div>
+    <div class="mk-host">${esc(host || 'your site renders here')}</div>
+    <div class="mk-skel"></div><div class="mk-skel w70"></div><div class="mk-skel w50"></div>
+  </div>`;
+}
+
+function mockDots() {
+  return '<span class="mk-dots"><i class="d r"></i><i class="d y"></i><i class="d g"></i></span>';
+}
+
+function mockWindow({ title, frameless, p, host, badge, floating }) {
+  const bar = frameless
+    ? `<div class="mk-bar slim">${mockDots()}<span class="mk-btitle">${esc(title)}</span></div>`
+    : `<div class="mk-bar">${mockDots()}<span class="mk-btitle">${esc(title)}</span></div>`;
+  return `<div class="mk-win${floating ? ' floating' : ''}">${bar}${mockSite(p, host, badge)}</div>`;
+}
+
+function mockPanel(p, host, badge) {
+  return `<div class="mk-menubar"><span class="mk-clock">9:41</span><span class="mk-tray lit">${mockIcon(p, 15)}</span></div>
+  <div class="mk-panel-wrap"><div class="mk-arrow"></div><div class="mk-panel">${mockSite(p, host, badge)}</div></div>`;
+}
+
+function mockPhone(p, host, badge) {
+  return `<div class="mk-phone"><div class="mk-notch"></div>${mockSite(p, host, badge)}</div>`;
+}
+
+function renderPreview() {
+  const stage = $('stage');
+  if (!stage) return;
+  const tab = document.querySelector('.tab.active')?.dataset.tab ?? 'wrap';
+  let mk, chips = [];
+  if (tab === 'create') {
+    const name = $('appTitle').value.trim() || $('appName').value.trim() || 'My App';
+    const tpl = $('template').value;
+    chips = [$('createFrameless').checked ? 'frameless' : 'titlebar',
+      tpl.startsWith('vanilla') ? 'zero dependencies' : 'Vite + npm'];
+    mk = mockWindow({
+      title: name, frameless: $('createFrameless').checked,
+      p: null, host: 'scaffolded from the ' + tpl + ' template', badge: false,
+    });
+  } else {
+    const host = (() => { try { return new URL($('wrapUrl').value.trim()).hostname; } catch { return ''; } })();
+    const p = (state.projects ?? []).find((x) => x.dir === $('wrapName').value.trim());
+    const menubar = $('wrapMenubar').checked;
+    const panel = menubar && $('wrapTray').value === 'panel';
+    const frameless = $('wrapFrameless').checked || panel;
+    const uaSel = $('wrapUA').selectedOptions[0]?.textContent.split('—')[0].trim();
+    if (frameless) chips.push('frameless');
+    if (menubar) chips.push(panel ? 'menu bar · panel' : 'menu bar · window');
+    if ($('wrapAlwaysTop').checked) chips.push('always on top');
+    chips.push('UA: ' + uaSel);
+    if ($('wrapBadge').value.trim()) chips.push('unread badge');
+    const ext = $('wrapExternal').value.trim();
+    if (ext) chips.push('↗ ' + ext.split(',').filter(Boolean).length + ' external');
+    const title = $('wrapTitle').value.trim() || host || 'TinyJS App';
+    if (ua === 'iphone') mk = mockPhone(p, host, !!$('wrapBadge').value.trim());
+    else if (panel) mk = mockPanel(p, host, !!$('wrapBadge').value.trim());
+    else mk = mockWindow({
+      title, frameless, p, host,
+      badge: !!$('wrapBadge').value.trim(),
+      floating: $('wrapAlwaysTop').checked,
+    });
+  }
+  stage.innerHTML = mk + `<div class="chips">${chips.map((c) => `<span class="chip">${esc(c)}</span>`).join('')}</div>`;
+}
+
+['wrapUrl', 'wrapName', 'wrapTitle', 'wrapUA', 'wrapExternal', 'wrapBadge',
+  'wrapFrameless', 'wrapMenubar', 'wrapTray', 'wrapAlwaysTop',
+  'appName', 'appTitle', 'template', 'createFrameless',
+].forEach((id) => {
+  const el = $(id);
+  if (!el) return;
+  el.addEventListener('input', renderPreview);
+  el.addEventListener('change', renderPreview);
+});
+
 log('TinyJS App Studio ready.', 'ok');
+renderPreview();
