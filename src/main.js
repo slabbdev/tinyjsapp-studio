@@ -499,6 +499,24 @@ export const api = {
     return true;
   },
 
+  // Read a file for the offcanvas: text for code, inline dataUrl for images.
+  async readFile({ path }) {
+    const ext = String(path).split('.').pop().toLowerCase();
+    const bytes = new Uint8Array(await tjs.readFile(path));
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico'].includes(ext)) {
+      if (bytes.length > 2 * 1048576) throw new Error('image over 2 MB — open it externally');
+      const mime = { jpg: 'image/jpeg', jpeg: 'image/jpeg', svg: 'image/svg+xml', ico: 'image/x-icon' }[ext] ?? 'image/' + ext;
+      return { kind: 'image', dataUrl: `data:${mime};base64,${toBase64(bytes)}` };
+    }
+    if (bytes.length > 512 * 1024) return { kind: 'toolarge', size: bytes.length };
+    return { kind: 'text', text: dec.decode(bytes), size: bytes.length };
+  },
+
+  async writeFile({ path, text }) {
+    await tjs.writeFile(path, enc.encode(String(text ?? '')));
+    return true;
+  },
+
   // Show the project in Finder / Explorer / the file manager.
   async reveal({ dir }) {
     const argv = IS_WIN ? ['explorer.exe', dir]

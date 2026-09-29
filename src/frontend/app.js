@@ -118,8 +118,15 @@ async function loadProjects() {
           : '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M3.5 1.8h5.4l3.3 3.3v9.1h-8.7z"/></svg>'
         }<span class="fn"></span>${f.dir ? '' : `<span class="fs">${fmtSize(f.size)}</span>`}`;
         row.querySelector('.fn').textContent = f.rel.split('/').pop();
-        row.addEventListener('click', () =>
-          tiny.api.call('openPath', { path: `${state.parent}/${p.dir}/${f.rel}` }));
+        row.addEventListener('click', () => {
+          const ext = f.rel.split('.').pop().toLowerCase();
+          const path = `${state.parent}/${p.dir}/${f.rel}`;
+          if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico', 'js', 'ts', 'html', 'css', 'json', 'md', 'txt'].includes(ext)) {
+            openFileCanvas(path);
+          } else {
+            tiny.api.call('openPath', { path });
+          }
+        });
         list.appendChild(row);
       }
     }
@@ -462,6 +469,101 @@ tiny.menu.setContext([
 ]);
 tiny.menu.onContext((id) => {
   if (id === 'github') tiny.app.shell.open('https://github.com/slabbdev/tinyjsapp-studio');
+});
+
+// --- file offcanvas: preview images, edit code ------------------------------
+
+const IMG_EXT = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico'];
+const TEXT_EXT = ['js', 'ts', 'html', 'css', 'json', 'md', 'txt'];
+let ocState = { path: null, dirty: false, ext: null };
+
+function hlCode(code, ext) {
+  const KW = 'const|let|var|function|return|if|else|for|while|import|from|export|await|async|class|new|try|catch|finally|throw|switch|case|break|continue|typeof|instanceof|of|in|delete|void|this|super|extends|default|true|false|null';
+  let re;
+  if (ext === 'html' || ext === 'svg') {
+    re = /(<!--[\s\S]*?-->)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(<\/?[a-zA-Z][^\s>]*|\/?>)|(\b\d+\b)/g;
+  } else if (ext === 'css') {
+    re = /(\/\*[\s\S]*?\*\/)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|([.#]?[a-zA-Z-]+(?=\s*:))|(\b\d+(?:\.\d+)?(?:px|em|rem|%|s|ms|vh|vw)?\b)/g;
+  } else {
+    re = new RegExp('(\\/\\/[^\\n]*|\\/\\*[\\s\\S]*?\\*\\/)'
+      + '|("(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\'|`(?:[^`\\\\]|\\\\.)*`)'
+      + '|\\b(' + (ext === 'json' ? 'true|false|null' : KW) + ')\\b'
+      + '|\\b(\\d+(?:\\.\\d+)?)\\b', 'g');
+  }
+  let out = '', last = 0;
+  for (const m of code.matchAll(re)) {
+    out += esc(code.slice(last, m.index));
+    const cls = m[1] !== undefined ? 'c' : m[2] !== undefined ? 's' : m[3] !== undefined ? 'k' : 'n';
+    out += `<span class="tk-${cls}">${esc(m[0])}</span>`;
+    last = m.index + m[0].length;
+  }
+  out += esc(code.slice(last));
+  return out;
+}
+
+async function openFileCanvas(path) {
+  const r = await tiny.api.call('readFile', { path }).catch((e) => ({ error: String(e.message ?? e) }));
+  ocState = { path, dirty: false, ext: path.split('.').pop().toLowerCase() };
+  $('ocName').textContent = path.split('/').pop();
+  $('ocName').classList.remove('dirty');
+  const body = $('ocBody');
+  if (r.error) { body.innerHTML = `<p class="hint" style="padding:16px">${esc(r.error)}</p>`; $('ocSave').hidden = true; }
+  else if (r.kind === 'image') {
+    body.innerHTML = `<div class="oc-img"><img src="${r.dataUrl}" alt=""></div>`;
+    $('ocSave').hidden = true;
+  } else if (r.kind === 'toolarge') {
+    body.innerHTML = `<p class="hint" style="padding:16px">${Math.round(r.size / 1024)} KB — too big to edit here, opening externally instead.</p>`;
+    $('ocSave').hidden = true;
+    tiny.api.call('openPath', { path });
+  } else {
+    $('ocSave').hidden = false;
+    body.innerHTML = '<div class="ed-wrap"><pre class="ed-hl"><code id="ocHl"></code></pre><textarea id="ocTa" spellcheck="false"></textarea></div>';
+    const ta = $('ocTa');
+    ta.value = r.text;
+    const paint = () => { $('ocHl').innerHTML = hlCode(ta.value, ocState.ext) + '\n'; };
+    ta.addEventListener('input', () => { ocState.dirty = true; $('ocName').classList.add('dirty'); paint(); });
+    ta.addEventListener('scroll', () => {
+      const pre = $('ocHl').parentElement;
+      pre.scrollTop = ta.scrollTop;
+      pre.scrollLeft = ta.scrollLeft;
+    });
+    ta.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const s = ta.selectionStart, epos = ta.selectionEnd;
+        ta.value = ta.value.slice(0, s) + '  ' + ta.value.slice(epos);
+        ta.selectionStart = ta.selectionEnd = s + 2;
+        ta.dispatchEvent(new Event('input'));
+      }
+    });
+    paint();
+  }
+  requestAnimationFrame(() => $('fileCanvas').classList.add('open'));
+}
+
+function closeFileCanvas() {
+  $('fileCanvas').classList.remove('open');
+  ocState = { path: null, dirty: false, ext: null };
+}
+
+async function saveFileCanvas() {
+  const ta = $('ocTa');
+  if (!ta) return;
+  await tiny.api.call('writeFile', { path: ocState.path, text: ta.value });
+  ocState.dirty = false;
+  $('ocName').classList.remove('dirty');
+  log('saved ' + ocState.path.split('/').pop(), 'ok');
+}
+
+$('ocSave').addEventListener('click', saveFileCanvas);
+$('ocClose').addEventListener('click', async () => {
+  if (ocState.dirty && !confirm('Discard unsaved changes?')) return;
+  closeFileCanvas();
+});
+document.addEventListener('keydown', (e) => {
+  if (!$('fileCanvas').classList.contains('open')) return;
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); saveFileCanvas(); }
+  if (e.key === 'Escape' && !ocState.dirty) closeFileCanvas();
 });
 
 log('TinyJS App Studio ready.', 'ok');

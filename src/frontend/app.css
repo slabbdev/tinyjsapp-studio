@@ -669,3 +669,72 @@ label.check input:focus-visible { outline: 2px solid var(--accent-dim); outline-
   padding: 3px 9px;
   background: var(--panel);
 }
+
+/* --- file offcanvas: preview / editor --------------------------------------- */
+
+.offcanvas {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: min(620px, 62vw);
+  background: var(--bg);
+  border-left: 1px solid var(--line);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(102%);
+  transition: transform .18s ease;
+  box-shadow: -24px 0 60px rgba(0, 0, 0, .45);
+}
+.offcanvas.open { transform: none; }
+
+.oc-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.oc-head .path { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oc-head .primary { padding: 5px 10px; font-size: 12px; }
+.oc-head button { padding: 5px 9px; font-size: 12px; }
+#ocName.dirty::after { content: ' ●'; color: var(--accent-dim); }
+
+.oc-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+.oc-img {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: repeating-conic-gradient(#202020 0 25%, #292929 0 50%) 0 0 / 20px 20px;
+}
+.oc-img img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, .4); }
+
+.ed-wrap { position: relative; flex: 1; overflow: hidden; background: #191919; }
+.ed-hl, .ed-ta {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 12px;
+  border: 0;
+  font: 12px/1.55 var(--mono);
+  white-space: pre;
+  overflow: auto;
+  tab-size: 2;
+}
+.ed-hl { pointer-events: none; color: var(--text); }
+.ed-hl code { display: block; min-height: 100%; }
+.ed-ta {
+  color: transparent;
+  caret-color: var(--text);
+  background: transparent;
+  resize: none;
+  outline: none;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.tk-c { color: #6a9955; font-style: italic; }
+.tk-s { color: #ce9178; }
+.tk-k { color: #569cd6; }
+.tk-n { color: #b5cea8; }
