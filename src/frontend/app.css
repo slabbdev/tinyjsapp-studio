@@ -413,7 +413,38 @@ label.check {
   padding: 4px 0;
   cursor: pointer;
 }
-label.check input { width: auto; min-width: 0; margin: 0; }
+/* custom checkbox: rounded square, accent fill + drawn check when on */
+label.check input {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex-shrink: 0;
+  position: relative;
+  border: 1.5px solid var(--line);
+  border-radius: 5px;
+  background: var(--bg);
+  cursor: pointer;
+  transition: background .12s, border-color .12s;
+}
+label.check input:hover { border-color: var(--accent-dim); }
+label.check input:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+label.check input:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4.5px;
+  height: 8.5px;
+  border: solid #fff;
+  border-width: 0 1.8px 1.8px 0;
+  transform: rotate(45deg);
+}
+label.check input:focus-visible { outline: 2px solid var(--accent-dim); outline-offset: 2px; }
 
 .hint {
   margin: 12px 0 0;
