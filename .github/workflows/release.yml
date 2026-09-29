@@ -48,7 +48,7 @@ jobs:
       - name: Build (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: & "$env:LOCALAPPDATA\tinyjs\tinyjs.cmd" build
+        run: '& "$env:LOCALAPPDATA\tinyjs\tinyjs.cmd" build'
 
       - name: Package (macOS)
         if: runner.os == 'macOS'
