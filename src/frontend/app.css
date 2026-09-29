@@ -335,7 +335,7 @@ body.mac #btnMax { order: 2; }
 .ins-icon-txt .muted { font: 10px var(--mono); }
 .ins-icon button { padding: 6px 10px; font-size: 12px; }
 
-.tabs { display: flex; gap: 6px; }
+.tabs { display: flex; gap: 6px; align-items: flex-end; }
 .tab {
   padding: 7px 14px;
   background: transparent;
@@ -353,6 +353,13 @@ body.mac #btnMax { order: 2; }
   color: var(--text);
 }
 .tab:hover:not(.active) { color: var(--text); }
+.tabs .new {
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.tabs .new:hover { color: var(--text); border-color: var(--accent-dim); }
 
 .inspector-scroll {
   flex: 1;

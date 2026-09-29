@@ -118,6 +118,8 @@ function fillWrapForm(p) {
   $('wrapDots').value = p.studio?.dots === false ? 'none' : 'dots';
   $('dotsField').hidden = !p.frameless || (p.studio?.panel ?? false);
   $('wrapAlwaysTop').checked = p.studio?.top ?? false;
+  // the icon preview mirrors the selected project's own icon
+  $('iconPrev').innerHTML = p.icon ? `<img src="${p.icon}" alt="">` : 'auto';
   renderPreview();
 }
 // note: badge/external live in the project (tinyjs.json studio{}) but stay
@@ -270,8 +272,37 @@ $('wrapTray').addEventListener('change', () => {
   if ($('wrapTray').value === 'panel') $('wrapFrameless').checked = true;
 });
 
+// + New: clear the active tab's form, deselect the project — fresh start.
+$('btnNew').addEventListener('click', () => {
+  const tab = document.querySelector('.tab.active')?.dataset.tab ?? 'wrap';
+  if (tab === 'wrap') {
+    $('wrapUrl').value = '';
+    $('wrapName').value = '';
+    $('wrapName').placeholder = 'auto';
+    $('wrapTitle').value = '';
+    $('wrapUA').value = 'browser';
+    $('wrapFrameless').checked = true;
+    $('wrapMenubar').checked = false;
+    $('wrapTray').value = 'window';
+    $('wrapAlwaysTop').checked = false;
+    $('iconPrev').textContent = 'auto';
+  } else {
+    $('appName').value = '';
+    $('appTitle').value = '';
+    $('template').value = 'vanilla';
+    $('createFrameless').checked = true;
+  }
+  state.project = null;
+  $('project').hidden = true;
+  syncSubChoices();
+  syncWrapButton();
+  renderPreview();
+  log('— fresh ' + (tab === 'wrap' ? 'wrap' : 'app') + ' — fill the form and go', 'ok');
+});
+
 $('btnRun').addEventListener('click', async () => {
   if (state.running) return;
+  if (!state.project) { log('select a project or fill the form first', 'err'); return; }
   busy(true);
   try {
     const p = (state.projects ?? []).find((x) => state.parent + '/' + x.dir === state.project);
