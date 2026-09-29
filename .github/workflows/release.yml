@@ -56,7 +56,7 @@ jobs:
         run: |
           cd dist
           app=$(find . -maxdepth 1 -name "*.app" | head -1 | sed 's|^\./||')
-          ditto -c -k --sequesterRDir --keepParent "$app" "../tinyjsapp-studio-macos.zip"
+          ditto -c -k --keepParent "$app" "../tinyjsapp-studio-macos.zip"
           cd ..
 
       - name: Package (Windows)
