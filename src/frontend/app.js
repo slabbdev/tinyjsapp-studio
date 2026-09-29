@@ -35,19 +35,8 @@ const busy = (b) => {
   $('btnStop').disabled = !b;
 };
 
-// --- status: which CLI will the Studio drive? ----------------------------
-
-(async () => {
-  const r = await tiny.api.call('resolve');
-  const el = $('status');
-  if (!r.found) {
-    el.textContent = 'tinyjs CLI not found — install it (tinyjs.app) or set TINYJS_BIN';
-    el.classList.add('bad');
-    return;
-  }
-  el.textContent = `tinyjs ${r.version || '?'} — ${r.bin}`;
-  el.classList.add('ok');
-})();
+// The CLI is resolved lazily by the backend on first use — no status line.
+// If it's missing, create/wrap surface a readable error in the console.
 
 tiny.api.on('log', (line) => log(line));
 tiny.api.on('done', ({ label, code }) => {
