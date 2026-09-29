@@ -135,8 +135,6 @@ function fillWrapForm(p) {
   $('wrapName').value = p.dir;
   $('wrapTitle').value = p.title ?? '';
   $('wrapUA').value = p.uaPreset ?? 'browser';
-  $('wrapBadge').value = p.studio?.badge ?? '';
-  $('wrapExternal').value = (p.studio?.external ?? []).join(', ');
   $('wrapFrameless').checked = p.frameless;
   $('wrapMenubar').checked = p.studio?.menubar ?? p.activation === 'accessory';
   $('wrapTray').hidden = !$('wrapMenubar').checked;
@@ -144,6 +142,8 @@ function fillWrapForm(p) {
   $('wrapAlwaysTop').checked = p.studio?.top ?? false;
   renderPreview();
 }
+// note: badge/external live in the project (tinyjs.json studio{}) but stay
+// out of the UI for now — the CLI flags remain the power path.
 
 // "Wrap site" reads as "Update site" when the folder matches a project.
 function syncWrapButton() {
@@ -262,8 +262,6 @@ function wrapParams(dir) {
     dir,
     title: $('wrapTitle').value.trim() || undefined,
     uaPreset: $('wrapUA').value,
-    badge: $('wrapBadge').value.trim() || undefined,
-    external: $('wrapExternal').value.trim() || undefined,
     frameless: $('wrapFrameless').checked,
     menubar,
     panel: menubar && $('wrapTray').value === 'panel',
@@ -395,22 +393,18 @@ function renderPreview() {
     if (menubar) chips.push(panel ? 'menu bar · panel' : 'menu bar · window');
     if ($('wrapAlwaysTop').checked) chips.push('always on top');
     chips.push('UA: ' + uaSel);
-    if ($('wrapBadge').value.trim()) chips.push('unread badge');
-    const ext = $('wrapExternal').value.trim();
-    if (ext) chips.push('↗ ' + ext.split(',').filter(Boolean).length + ' external');
     const title = $('wrapTitle').value.trim() || host || 'TinyJS App';
-    if (ua === 'iphone') mk = mockPhone(p, host, !!$('wrapBadge').value.trim());
-    else if (panel) mk = mockPanel(p, host, !!$('wrapBadge').value.trim());
+    if (ua === 'iphone') mk = mockPhone(p, host);
+    else if (panel) mk = mockPanel(p, host);
     else mk = mockWindow({
       title, frameless, p, host,
-      badge: !!$('wrapBadge').value.trim(),
       floating: $('wrapAlwaysTop').checked,
     });
   }
   stage.innerHTML = mk + `<div class="chips">${chips.map((c) => `<span class="chip">${esc(c)}</span>`).join('')}</div>`;
 }
 
-['wrapUrl', 'wrapName', 'wrapTitle', 'wrapUA', 'wrapExternal', 'wrapBadge',
+['wrapUrl', 'wrapName', 'wrapTitle', 'wrapUA',
   'wrapFrameless', 'wrapMenubar', 'wrapTray', 'wrapAlwaysTop',
   'appName', 'appTitle', 'template', 'createFrameless',
 ].forEach((id) => {
