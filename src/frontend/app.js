@@ -138,6 +138,8 @@ function fillWrapForm(p) {
   $('wrapExternal').value = (p.studio?.external ?? []).join(', ');
   $('wrapFrameless').checked = p.frameless;
   $('wrapMenubar').checked = p.studio?.menubar ?? p.activation === 'accessory';
+  $('wrapTray').hidden = !$('wrapMenubar').checked;
+  $('wrapTray').value = p.studio?.panel ? 'panel' : 'window';
   $('wrapAlwaysTop').checked = p.studio?.top ?? false;
 }
 
@@ -250,6 +252,7 @@ function setProject(dir) {
 // first (overwrite in place) and only then launches — so a checkbox flip is
 // one click, never "update, then run".
 function wrapParams(dir) {
+  const menubar = $('wrapMenubar').checked;
   return {
     parent: state.parent,
     url: $('wrapUrl').value.trim(),
@@ -259,10 +262,20 @@ function wrapParams(dir) {
     badge: $('wrapBadge').value.trim() || undefined,
     external: $('wrapExternal').value.trim() || undefined,
     frameless: $('wrapFrameless').checked,
-    menubar: $('wrapMenubar').checked,
+    menubar,
+    panel: menubar && $('wrapTray').value === 'panel',
     alwaysTop: $('wrapAlwaysTop').checked,
   };
 }
+
+// Menu-bar mode unfolds the tray-click choice; a dropdown panel implies
+// frameless (a panel with a titlebar is nonsense).
+$('wrapMenubar').addEventListener('change', () => {
+  $('wrapTray').hidden = !$('wrapMenubar').checked;
+});
+$('wrapTray').addEventListener('change', () => {
+  if ($('wrapTray').value === 'panel') $('wrapFrameless').checked = true;
+});
 
 $('btnRun').addEventListener('click', async () => {
   if (state.running) return;

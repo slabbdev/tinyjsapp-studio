@@ -337,11 +337,12 @@ export const api = {
   // optional display title overrides the site's own <title>; an optional
   // badge selector mirrors the site's unread count onto the dock icon; the
   // UA preset ('browser' | 'iphone' | 'engine') counters UA-sniffing.
-  async wrap({ parent, url, dir, title, ua, uaPreset, frameless, badge, menubar, alwaysTop, external }, app) {
+  async wrap({ parent, url, dir, title, ua, uaPreset, frameless, badge, menubar, alwaysTop, external, panel }, app) {
     const argv = ['wrap', url, dir, '--force']; // the Studio edits in place
     const resolved = resolveUA(uaPreset, ua);
     if (resolved) argv.push('--ua', resolved);
     if (menubar) argv.push('--menubar');
+    if (panel) argv.push('--panel');
     if (alwaysTop) argv.push('--top');
     if (external) argv.push('--external', String(external));
     const r = await runStreaming(app, argv, { cwd: parent, label: 'wrap' });
