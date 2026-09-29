@@ -274,10 +274,16 @@ async function applyFinishing(dir, opts) {
     // buttons, so no OS shows a second (or floating) set.
     cfg.chrome = { ...(cfg.chrome ?? {}), frame: false, windowControls: false };
   }
-  const inj = injectSource(opts);
+  // Panel mode: no inject at all — no drag strip, no window dots (the panel
+  // toggles from the tray and dismisses on outside click). A stale inject
+  // from a previous frameless generation is removed.
+  const inj = opts.panel ? null : injectSource(opts);
   if (inj) {
     cfg.inject = 'inject.js';
     await tjs.writeFile(root + '/inject.js', enc.encode(inj));
+  } else if (cfg.inject) {
+    delete cfg.inject;
+    await tjs.remove(root + '/inject.js').catch(() => { });
   }
   cfg.studio = {
     ...(cfg.studio ?? {}),
