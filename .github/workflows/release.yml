@@ -7,6 +7,9 @@ on:
 permissions:
   contents: write
 
+env:
+  TINYJS_VERSION: v0.42.2
+
 jobs:
   build:
     strategy:
@@ -20,6 +23,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Linux needs the WebKit runtime BEFORE the tinyjs installer runs
+      - name: WebKit packages (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-0 libwebkit2gtk-4.1-dev libgtk-3-dev
+
       - name: Install tinyjs (macOS / Linux)
         if: runner.os != 'Windows'
         run: curl -fsSL https://tinyjs.app/install | sh
@@ -27,16 +37,18 @@ jobs:
       - name: Install tinyjs (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: irm https://tinyjs.app/install.ps1 | iex
-
-      - name: WebKit dev packages (Linux build links against them)
-        if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev
+          $env:TINYJS_VERSION = '${{ env.TINYJS_VERSION }}'
+          irm https://tinyjs.app/install.ps1 | iex
 
-      - name: Build
+      - name: Build (macOS / Linux)
+        if: runner.os != 'Windows'
         run: tinyjs build
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: & "$env:LOCALAPPDATA\tinyjs\tinyjs.cmd" build
 
       - name: Package (macOS)
         if: runner.os == 'macOS'
