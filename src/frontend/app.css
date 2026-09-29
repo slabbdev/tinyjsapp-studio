@@ -38,9 +38,7 @@ header {
   -webkit-app-region: drag;
 }
 
-/* macOS frameless: leave room for the floating traffic lights */
-body.mac header { padding-left: 84px; }
-body.mac .wincontrols { display: none; }
+/* frameless everywhere: our own pastilles, no native traffic lights */
 
 .brand { display: flex; align-items: baseline; gap: 10px; }
 .brand .dot {

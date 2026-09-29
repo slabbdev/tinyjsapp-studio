@@ -155,9 +155,9 @@ async function writeIcon(dir, bytes) {
 // plus window buttons where the OS supplies none (Windows/Linux; macOS gets
 // its native traffic lights). document-start, every window.
 const DRAG_STRIP = `// Frameless starter: a drag strip along the top edge so the window moves,
-// plus window buttons where the OS supplies none (Windows/Linux). Delete
-// this file and the "inject" key in tinyjs.json once you have your own
-// titlebar.
+// plus window buttons (the native ones are hidden on every OS — see
+// windowControls in tinyjs.json). Delete this file and the "inject" key in
+// tinyjs.json once you have your own titlebar.
 (() => {
   const bar = document.createElement('div');
   bar.setAttribute('data-tiny-drag', '');
@@ -165,15 +165,13 @@ const DRAG_STRIP = `// Frameless starter: a drag strip along the top edge so the
     'position:fixed;top:0;left:0;right:0;height:26px;z-index:2147483647;' +
     'display:flex;align-items:center;justify-content:flex-end;gap:8px;' +
     'padding:0 10px';
-  if (!/Mac/i.test(navigator.platform)) {
-    for (const [label, verb] of [['–', 'minimize'], ['×', 'close']]) {
-      const b = document.createElement('button');
-      b.textContent = label;
-      b.style.cssText = 'width:18px;height:18px;border:0;border-radius:50%;' +
-        'background:#2a3040;color:#e8eaf0;font:12px/1 sans-serif;cursor:pointer';
-      b.addEventListener('click', () => window.tiny?.win[verb]());
-      bar.appendChild(b);
-    }
+  for (const [label, verb] of [['–', 'minimize'], ['×', 'close']]) {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.style.cssText = 'width:18px;height:18px;border:0;border-radius:50%;' +
+      'background:#2a3040;color:#e8eaf0;font:12px/1 sans-serif;cursor:pointer';
+    b.addEventListener('click', () => window.tiny?.win[verb]());
+    bar.appendChild(b);
   }
   document.documentElement.appendChild(bar);
 })();
@@ -219,7 +217,11 @@ async function applyFinishing(dir, opts) {
   const root = dir.replace(/[\\/]+$/, '');
   const p = root + '/tinyjs.json';
   const cfg = JSON.parse(dec.decode(await tjs.readFile(p)));
-  if (opts.frameless) cfg.chrome = { ...(cfg.chrome ?? {}), frame: false };
+  if (opts.frameless) {
+    // windowControls:false everywhere — the drag strip injects its own
+    // buttons, so no OS shows a second (or floating) set.
+    cfg.chrome = { ...(cfg.chrome ?? {}), frame: false, windowControls: false };
+  }
   const inj = injectSource(opts);
   if (inj) {
     cfg.inject = 'inject.js';
