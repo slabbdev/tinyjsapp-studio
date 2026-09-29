@@ -391,7 +391,6 @@ function renderPreview() {
     const panel = menubar && $('wrapTray').value === 'panel';
     const frameless = $('wrapFrameless').checked || panel;
     const dots = $('wrapDots').value !== 'none';
-    tiny.log(`pv: dots=${dots} sel="${$('wrapDots').value}" fr=${frameless}`);
     const ua = $('wrapUA').value;
     const uaSel = $('wrapUA').selectedOptions[0]?.textContent.split('—')[0].trim();
     if (frameless) chips.push(frameless && !dots ? 'frameless · no buttons' : 'frameless');

@@ -321,6 +321,21 @@ body.mac #btnMax { order: 2; }
   min-height: 0;
 }
 
+.ins-icon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+.ins-icon-txt { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.ins-icon-txt strong { font-size: 12px; font-weight: 600; }
+.ins-icon-txt .muted { font: 10px var(--mono); }
+.ins-icon button { padding: 6px 10px; font-size: 12px; }
+
 .tabs { display: flex; gap: 6px; }
 .tab {
   padding: 7px 14px;
