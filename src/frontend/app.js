@@ -226,16 +226,7 @@ $('btnWrap').addEventListener('click', async () => {
   busy(true);
   log(`— tinyjs wrap ${url} —`);
   try {
-    const { code } = await tiny.api.call('wrap', {
-      parent: state.parent, url, dir,
-      title: $('wrapTitle').value.trim() || undefined,
-      uaPreset: $('wrapUA').value,
-      badge: $('wrapBadge').value.trim() || undefined,
-      external: $('wrapExternal').value.trim() || undefined,
-      frameless: $('wrapFrameless').checked,
-      menubar: $('wrapMenubar').checked,
-      alwaysTop: $('wrapAlwaysTop').checked,
-    });
+    const { code } = await tiny.api.call('wrap', wrapParams(dir));
     if (code === 0) {
       setProject(state.parent + '/' + dir);
       loadProjects();
@@ -255,12 +246,41 @@ function setProject(dir) {
   busy(false);
 }
 
+// The wrap form is the editor: for a wrapped project, Run APPLIES the form
+// first (overwrite in place) and only then launches — so a checkbox flip is
+// one click, never "update, then run".
+function wrapParams(dir) {
+  return {
+    parent: state.parent,
+    url: $('wrapUrl').value.trim(),
+    dir,
+    title: $('wrapTitle').value.trim() || undefined,
+    uaPreset: $('wrapUA').value,
+    badge: $('wrapBadge').value.trim() || undefined,
+    external: $('wrapExternal').value.trim() || undefined,
+    frameless: $('wrapFrameless').checked,
+    menubar: $('wrapMenubar').checked,
+    alwaysTop: $('wrapAlwaysTop').checked,
+  };
+}
+
 $('btnRun').addEventListener('click', async () => {
   if (state.running) return;
   busy(true);
-  log('— tinyjs dev —');
-  try { await tiny.api.call('run', { dir: state.project }); }
-  catch (e) { log(String(e.message ?? e), 'err'); busy(false); }
+  try {
+    const p = (state.projects ?? []).find((x) => state.parent + '/' + x.dir === state.project);
+    if (p && p.url && $('wrapUrl').value.trim()) {
+      log('— applying config —');
+      const r = await tiny.api.call('wrap', wrapParams(p.dir));
+      if (r.code !== 0) { busy(false); return; }
+      loadProjects();
+    }
+    log('— tinyjs dev —');
+    await tiny.api.call('run', { dir: state.project });
+  } catch (e) {
+    log(String(e.message ?? e), 'err');
+    busy(false);
+  }
 });
 
 $('btnStop').addEventListener('click', () => tiny.api.call('stop'));
