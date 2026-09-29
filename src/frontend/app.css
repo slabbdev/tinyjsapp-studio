@@ -173,6 +173,27 @@ body.mac #btnMax { order: 2; }
 }
 .proj-item .txt { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 
+/* mini file explorer: tree under the expanded project */
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 4px 8px;
+  margin-bottom: 1px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  font: 11px var(--mono);
+  color: var(--muted);
+  text-align: left;
+  cursor: pointer;
+}
+.file-item:hover { background: var(--bg); color: var(--text); }
+.file-item svg { width: 11px; height: 11px; flex-shrink: 0; opacity: .7; }
+.file-item .fn { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-item .fs { font-size: 9px; opacity: .7; }
+
 .side-foot {
   border-top: 1px solid var(--line);
   padding: 10px 12px 12px;

@@ -94,14 +94,42 @@ async function loadProjects() {
     item.querySelector('.s').textContent = p.url
       ? new URL(p.url).hostname : 'local app';
     item.addEventListener('click', () => {
-      setProject(state.parent + '/' + p.dir);
+      const sel = state.parent + '/' + p.dir;
+      if (state.project === sel && state.expanded === p.dir) state.expanded = null;
+      else state.expanded = p.dir;
+      setProject(sel);
       if (p.url) fillWrapForm(p);
       loadProjects();
     });
     list.appendChild(item);
+
+    // expanded project: its file tree under the card — click opens with the
+    // OS default app (the Studio stays read-only by design).
+    if (state.expanded === p.dir) {
+      const { files } = await tiny.api.call('listFiles', {
+        dir: state.parent + '/' + p.dir,
+      });
+      for (const f of files) {
+        const row = document.createElement('button');
+        row.className = 'file-item';
+        row.style.paddingLeft = (14 + f.depth * 14) + 'px';
+        row.innerHTML = `${f.dir
+          ? '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M1.8 3.2h4.4l1.6 1.8h6.4v7.8H1.8z"/></svg>'
+          : '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M3.5 1.8h5.4l3.3 3.3v9.1h-8.7z"/></svg>'
+        }<span class="fn"></span>${f.dir ? '' : `<span class="fs">${fmtSize(f.size)}</span>`}`;
+        row.querySelector('.fn').textContent = f.rel.split('/').pop();
+        row.addEventListener('click', () =>
+          tiny.api.call('openPath', { path: `${state.parent}/${p.dir}/${f.rel}` }));
+        list.appendChild(row);
+      }
+    }
   }
   renderPreview();
 }
+
+const fmtSize = (n) => n < 1024 ? n + ' B'
+  : n < 1048576 ? (n / 1024).toFixed(1) + ' KB'
+  : (n / 1048576).toFixed(1) + ' MB';
 
 // Clicking a wrapped project restores its configuration in the form, so a
 // change is just: tweak + Wrap site (the wrap overwrites in place).

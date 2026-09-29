@@ -463,6 +463,42 @@ export const api = {
     return { dir: target, title: cfg.title };
   },
 
+  // Mini file explorer: recursive listing of a project (artifacts skipped,
+  // 3 levels deep) — the sidebar renders it as an expandable tree.
+  async listFiles({ dir }) {
+    const files = [];
+    const skip = ['.build', 'dist', 'node_modules', '.DS_Store'];
+    const walk = async (abs, rel, depth) => {
+      if (depth > 2) return;
+      const iter = await tjs.readDir(abs);
+      for await (const e of iter) {
+        if (e.name.startsWith('.') || skip.includes(e.name)) continue;
+        const r = rel ? rel + '/' + e.name : e.name;
+        const p = abs + '/' + e.name;
+        if (e.isDirectory) {
+          files.push({ rel: r, dir: true, depth, size: 0 });
+          await walk(p, r, depth + 1);
+        } else {
+          let size = 0;
+          try { size = (await tjs.stat(p)).size; } catch { }
+          files.push({ rel: r, dir: false, depth, size });
+        }
+      }
+    };
+    try { await walk(dir.replace(/[\\/]+$/, ''), '', 0); } catch { }
+    return { files };
+  },
+
+  // Open a file or folder with the OS default app (the "editor" path for
+  // generated projects — the Studio stays read-only by design).
+  async openPath({ path }) {
+    const argv = IS_WIN ? ['explorer.exe', path]
+      : IS_LINUX ? ['xdg-open', path]
+      : ['open', path];
+    tjs.spawn(argv, { stdout: 'ignore', stderr: 'ignore' });
+    return true;
+  },
+
   // Show the project in Finder / Explorer / the file manager.
   async reveal({ dir }) {
     const argv = IS_WIN ? ['explorer.exe', dir]
