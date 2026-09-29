@@ -1,7 +1,7 @@
 {
   "name": "tinyjsapp-studio",
   "title": "TinyJS App Studio",
-  "size": "1040x700",
+  "size": "1150x840",
   "id": "app.tinyjsapp.studio",
   "version": "0.1.0",
   "chrome": { "frame": false, "windowControls": false },
