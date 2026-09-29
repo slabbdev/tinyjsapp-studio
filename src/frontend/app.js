@@ -10,6 +10,7 @@ document.body.classList.toggle('mac', isMac);
 const state = {
   parent: null,   // where new projects are created
   project: null,  // the project run/build/reveal act on
+  source: 'wrap', // what the inspector generates: 'wrap' (a URL) | 'create' (a template)
   running: false,
 };
 
@@ -30,8 +31,7 @@ function log(line, cls) {
 const busy = (b) => {
   state.running = b;
   $('btnRun').disabled = b;
-  $('btnWrap').disabled = b;
-  $('btnCreate').disabled = b;
+  $('btnGenerate').disabled = b;
   $('btnStop').disabled = !b;
 };
 
@@ -134,7 +134,8 @@ const fmtSize = (n) => n < 1024 ? n + ' B'
 // Clicking a wrapped project restores its configuration in the form, so a
 // change is just: tweak + Wrap site (the wrap overwrites in place).
 function fillWrapForm(p) {
-  document.querySelector('.tab[data-tab="wrap"]').click();
+  state.source = 'wrap';
+  document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === 'wrap'));
   $('wrapUrl').value = p.url;
   $('wrapName').value = p.dir;
   $('wrapTitle').value = p.title ?? '';
@@ -157,7 +158,9 @@ function fillWrapForm(p) {
 function syncWrapButton() {
   const dir = $('wrapName').value.trim();
   const known = (state.projects ?? []).some((p) => p.dir === dir);
-  $('btnWrap').textContent = known ? 'Update site' : 'Wrap site';
+  const noun = state.source === 'wrap' ? 'site' : 'project';
+  $('btnGenerate').textContent = known ? 'Update ' + noun
+    : state.source === 'wrap' ? 'Wrap site' : 'Create project';
 }
 $('wrapName').addEventListener('input', syncWrapButton);
 $('wrapUrl').addEventListener('input', () => {
@@ -188,40 +191,14 @@ document.querySelectorAll('.tab').forEach((tab) => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
     tab.classList.add('active');
-    $('tab-create').hidden = tab.dataset.tab !== 'create';
-    $('tab-wrap').hidden = tab.dataset.tab !== 'wrap';
+    state.source = tab.dataset.tab;
+    syncSubChoices();
+    syncWrapButton();
     renderPreview();
   });
 });
 
-// --- create ----------------------------------------------------------------
-
-$('btnCreate').addEventListener('click', async () => {
-  if (state.running) return;
-  const name = $('appName').value.trim();
-  if (!state.parent) return log('pick a projects folder first', 'err');
-  if (!/^[a-zA-Z0-9_-]+$/.test(name)) return log('app name: letters, digits, - and _ only', 'err');
-  busy(true);
-  log(`— tinyjs new ${name} —`);
-  try {
-    const { code } = await tiny.api.call('create', {
-      parent: state.parent, name,
-      title: $('appTitle').value.trim() || undefined,
-      template: $('template').value,
-      frameless: $('createFrameless').checked,
-      dots: $('createDots').value !== 'none',
-    });
-    if (code === 0) {
-      setProject(state.parent + '/' + name);
-      loadProjects();
-    }
-  } catch (e) {
-    log(String(e.message ?? e), 'err');
-    busy(false);
-  }
-});
-
-// --- wrap --------------------------------------------------------------------
+// --- generate: one flow, two sources (a URL to wrap, a template to scaffold)
 
 const dirFromUrl = (url) => {
   try {
@@ -230,19 +207,45 @@ const dirFromUrl = (url) => {
   } catch { return ''; }
 };
 
-$('btnWrap').addEventListener('click', async () => {
-  if (state.running) return;
+function collectConfig(dirOverride) {
+  const wrap = state.source === 'wrap';
   const url = $('wrapUrl').value.trim();
+  const dir = $('wrapName').value.trim()
+    || (wrap ? dirFromUrl(url) : 'my-app');
+  const frameless = $('wrapFrameless').checked;
+  const menubar = wrap && $('wrapMenubar').checked;
+  return {
+    source: state.source,
+    parent: state.parent,
+    url: wrap ? url : undefined,
+    template: wrap ? undefined : $('template').value,
+    dir: dirOverride ?? dir,
+    title: $('wrapTitle').value.trim() || undefined,
+    uaPreset: wrap ? $('wrapUA').value : undefined,
+    frameless,
+    dots: frameless && $('wrapDots').value !== 'none',
+    menubar,
+    panel: menubar && $('wrapTray').value === 'panel',
+    alwaysTop: wrap ? $('wrapAlwaysTop').checked : undefined,
+  };
+}
+
+$('btnGenerate').addEventListener('click', async () => {
+  if (state.running) return;
+  const cfg = collectConfig();
   if (!state.parent) return log('pick a projects folder first', 'err');
-  if (!/^https?:\/\//.test(url)) return log('need a http(s) URL', 'err');
-  const dir = $('wrapName').value.trim() || dirFromUrl(url);
-  if (!dir) return log('cannot derive a folder name from that URL', 'err');
+  if (cfg.source === 'wrap') {
+    if (!/^https?:\/\//.test(cfg.url)) return log('need a http(s) URL', 'err');
+    if (!cfg.dir) return log('cannot derive a folder name from that URL', 'err');
+  } else if (!/^[a-zA-Z0-9_-]+$/.test(cfg.dir)) {
+    return log('folder name: letters, digits, - and _ only', 'err');
+  }
   busy(true);
-  log(`— tinyjs wrap ${url} —`);
+  log(`— ${cfg.source === 'wrap' ? 'tinyjs wrap ' + cfg.url : 'tinyjs new ' + cfg.dir} —`);
   try {
-    const { code } = await tiny.api.call('wrap', wrapParams(dir));
+    const { code } = await tiny.api.call(cfg.source, cfg);
     if (code === 0) {
-      setProject(state.parent + '/' + dir);
+      setProject(state.parent + '/' + cfg.dir);
       loadProjects();
     }
   } catch (e) {
@@ -263,34 +266,19 @@ function setProject(dir) {
 // The wrap form is the editor: for a wrapped project, Run APPLIES the form
 // first (overwrite in place) and only then launches — so a checkbox flip is
 // one click, never "update, then run".
-function wrapParams(dir) {
-  const menubar = $('wrapMenubar').checked;
-  const panel = menubar && $('wrapTray').value === 'panel';
-  const frameless = $('wrapFrameless').checked;
-  return {
-    parent: state.parent,
-    url: $('wrapUrl').value.trim(),
-    dir,
-    title: $('wrapTitle').value.trim() || undefined,
-    uaPreset: $('wrapUA').value,
-    frameless,
-    dots: frameless && !panel ? $('wrapDots').value !== 'none' : undefined,
-    menubar,
-    panel,
-    alwaysTop: $('wrapAlwaysTop').checked,
-  };
-}
-
-// Sub-choices unfold with their parents: tray click under menu bar, window
-// buttons under frameless (except panel mode — panels have no buttons).
+// Sub-choices unfold with their parents, and the source decides which
+// sections show: window modes and UA are wrap-only.
 function syncSubChoices() {
-  const menubar = $('wrapMenubar').checked;
+  const wrap = state.source === 'wrap';
+  const menubar = wrap && $('wrapMenubar').checked;
   const panel = menubar && $('wrapTray').value === 'panel';
   const frameless = $('wrapFrameless').checked;
+  $('urlField').hidden = !wrap;
+  $('tplField').hidden = wrap;
+  document.querySelectorAll('.wrap-only').forEach((el) => { el.hidden = !wrap; });
   $('wrapTray').hidden = !menubar;
   $('dotsField').hidden = !frameless || panel;
   if (panel) $('wrapFrameless').checked = true;
-  $('createDotsField').hidden = !$('createFrameless').checked;
 }
 $('wrapMenubar').addEventListener('change', syncSubChoices);
 $('wrapTray').addEventListener('change', () => {
@@ -302,33 +290,25 @@ $('wrapTray').addEventListener('change', () => {
   if ($('wrapTray').value === 'panel') $('wrapFrameless').checked = true;
 });
 
-// + New: clear the active tab's form, deselect the project — fresh start.
+// + New: clear the form for the active source, deselect — fresh start.
 $('btnNew').addEventListener('click', () => {
-  const tab = document.querySelector('.tab.active')?.dataset.tab ?? 'wrap';
-  if (tab === 'wrap') {
-    $('wrapUrl').value = '';
-    $('wrapName').value = '';
-    $('wrapName').placeholder = 'auto';
-    $('wrapTitle').value = '';
-    $('wrapUA').value = 'browser';
-    $('wrapFrameless').checked = true;
-    $('wrapMenubar').checked = false;
-    $('wrapTray').value = 'window';
-    $('wrapAlwaysTop').checked = false;
-    $('iconPrev').textContent = 'auto';
-  } else {
-    $('appName').value = '';
-    $('appTitle').value = '';
-    $('template').value = 'vanilla';
-    $('createFrameless').checked = true;
-    $('createDots').value = 'dots';
-  }
+  $('wrapUrl').value = '';
+  $('wrapName').value = '';
+  $('wrapName').placeholder = 'auto';
+  $('wrapTitle').value = '';
+  $('wrapUA').value = 'browser';
+  $('wrapFrameless').checked = true;
+  $('wrapDots').value = 'dots';
+  $('wrapMenubar').checked = false;
+  $('wrapTray').value = 'window';
+  $('wrapAlwaysTop').checked = false;
+  $('iconPrev').textContent = 'auto';
   state.project = null;
   $('project').hidden = true;
   syncSubChoices();
   syncWrapButton();
   renderPreview();
-  log('— fresh ' + (tab === 'wrap' ? 'wrap' : 'app') + ' — fill the form and go', 'ok');
+  log('— fresh ' + (state.source === 'wrap' ? 'wrap' : 'app') + ' — fill the form and go', 'ok');
 });
 
 $('btnRun').addEventListener('click', async () => {
@@ -339,7 +319,7 @@ $('btnRun').addEventListener('click', async () => {
     const p = (state.projects ?? []).find((x) => state.parent + '/' + x.dir === state.project);
     if (p && p.url && $('wrapUrl').value.trim()) {
       log('— applying config —');
-      const r = await tiny.api.call('wrap', wrapParams(p.dir));
+      const r = await tiny.api.call('wrap', collectConfig(p.dir));
       if (r.code !== 0) { busy(false); return; }
       loadProjects();
     }
@@ -428,17 +408,18 @@ function mockPhone(p, host, badge) {
 function renderPreview() {
   const stage = $('stage');
   if (!stage) return;
-  const tab = document.querySelector('.tab.active')?.dataset.tab ?? 'wrap';
+  const wrap = state.source === 'wrap';
   let mk, chips = [];
-  if (tab === 'create') {
-    const name = $('appTitle').value.trim() || $('appName').value.trim() || 'My App';
+  if (!wrap) {
+    const name = $('wrapTitle').value.trim() || $('wrapName').value.trim() || 'My App';
     const tpl = $('template').value;
-    chips = [$('createFrameless').checked ? 'frameless' : 'titlebar',
+    const fr = $('wrapFrameless').checked;
+    chips = [fr ? 'frameless' : 'titlebar',
+      fr && $('wrapDots').value !== 'none' ? 'window dots' : 'no buttons',
       tpl.startsWith('vanilla') ? 'zero dependencies' : 'Vite + npm'];
     mk = mockWindow({
-      title: name, frameless: $('createFrameless').checked,
-      dots: $('createDots').value !== 'none',
-      p: null, host: 'scaffolded from the ' + tpl + ' template', badge: false,
+      title: name, frameless: fr, dots: fr && $('wrapDots').value !== 'none',
+      p: null, host: 'scaffolded from the ' + tpl + ' template',
     });
   } else {
     const host = (() => { try { return new URL($('wrapUrl').value.trim()).hostname; } catch { return ''; } })();
@@ -465,8 +446,7 @@ function renderPreview() {
 }
 
 ['wrapUrl', 'wrapName', 'wrapTitle', 'wrapUA', 'wrapDots',
-  'wrapFrameless', 'wrapMenubar', 'wrapTray', 'wrapAlwaysTop',
-  'appName', 'appTitle', 'template', 'createFrameless', 'createDots',
+  'wrapFrameless', 'wrapMenubar', 'wrapTray', 'wrapAlwaysTop', 'template',
 ].forEach((id) => {
   const el = $(id);
   if (!el) return;

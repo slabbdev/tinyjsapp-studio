@@ -61,18 +61,13 @@
         <button id="btnNew" class="new" data-tip="Clear the form, start fresh">+ New</button>
       </nav>
       <div class="inspector-scroll">
-        <section id="tab-create" class="pane" hidden>
-          <div class="sec">Identity</div>
-          <div class="field">
-            <label for="appName">Folder</label>
-            <input id="appName" type="text" placeholder="myapp" spellcheck="false">
+        <section class="pane">
+          <div class="sec">Source</div>
+          <div class="field" id="urlField">
+            <label for="wrapUrl">Site URL</label>
+            <input id="wrapUrl" type="text" placeholder="https://airtable.com" spellcheck="false">
           </div>
-          <div class="field">
-            <label for="appTitle">Display name</label>
-            <input id="appTitle" type="text" placeholder="auto" spellcheck="false">
-          </div>
-          <div class="sec">Stack</div>
-          <div class="field">
+          <div class="field" id="tplField" hidden>
             <label for="template">Template</label>
             <select id="template">
               <option value="vanilla">vanilla — zero dependencies</option>
@@ -83,33 +78,13 @@
               <option value="solid-ts">solid-ts — Vite + npm</option>
             </select>
           </div>
-          <div class="sec">Window</div>
-          <label class="check"><input type="checkbox" id="createFrameless" checked> frameless</label>
-          <div class="field" id="createDotsField">
-            <label for="createDots">Window buttons</label>
-            <select id="createDots">
-              <option value="dots" selected>with dots — close / min / zoom</option>
-              <option value="none">none — bare draggable site</option>
-            </select>
-          </div>
-          <button id="btnCreate" class="primary wide">Create project</button>
-          <p class="hint">Zero-dependency templates need nothing but tinyjs.
-          The Vite ones run <code>npm install</code> for you.</p>
-        </section>
-
-        <section id="tab-wrap" class="pane">
-          <div class="sec">Site</div>
-          <div class="field">
-            <label for="wrapUrl">Site URL</label>
-            <input id="wrapUrl" type="text" placeholder="https://airtable.com" spellcheck="false">
-          </div>
           <div class="field">
             <label for="wrapName">Folder</label>
             <input id="wrapName" type="text" placeholder="auto" spellcheck="false">
           </div>
           <div class="field">
             <label for="wrapTitle">Display name</label>
-            <input id="wrapTitle" type="text" placeholder="site title" spellcheck="false">
+            <input id="wrapTitle" type="text" placeholder="auto" spellcheck="false">
           </div>
           <div class="sec">Window</div>
           <label class="check"><input type="checkbox" id="wrapFrameless" checked> frameless</label>
@@ -120,17 +95,17 @@
               <option value="none">none — bare draggable site</option>
             </select>
           </div>
-          <label class="check"><input type="checkbox" id="wrapMenubar"> menu bar app</label>
-          <div class="field" id="trayField" hidden>
+          <label class="check wrap-only"><input type="checkbox" id="wrapMenubar"> menu bar app</label>
+          <div class="field wrap-only" id="trayField" hidden>
             <label for="wrapTray">Tray click</label>
             <select id="wrapTray">
               <option value="window">opens the window</option>
               <option value="panel">dropdown panel</option>
             </select>
           </div>
-          <label class="check"><input type="checkbox" id="wrapAlwaysTop"> always on top</label>
-          <div class="sec">Behavior</div>
-          <div class="field">
+          <label class="check wrap-only"><input type="checkbox" id="wrapAlwaysTop"> always on top</label>
+          <div class="sec wrap-only">Behavior</div>
+          <div class="field wrap-only">
             <label for="wrapUA">User agent</label>
             <select id="wrapUA">
               <option value="browser" selected>browser — anti-sniffing</option>
@@ -138,10 +113,10 @@
               <option value="iphone">iPhone — mobile</option>
             </select>
           </div>
-          <button id="btnWrap" class="primary wide">Wrap site</button>
+          <button id="btnGenerate" class="primary wide">Wrap site</button>
           <p class="hint">The preview mirrors every option. Run applies the
           form, then launches. Needs a tinyjs with the <code>wrap</code>
-          command (see README).</p>
+          command for sites (see README).</p>
         </section>
       </div>
     </aside>
