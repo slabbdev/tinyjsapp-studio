@@ -249,8 +249,30 @@ body.mac #btnMax { order: 2; }
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 6px 8px;
-  overflow: hidden;
 }
+
+/* IDE-style tooltips: pure CSS, no title attr, appear after a short beat */
+[data-tip] { position: relative; }
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111214;
+  border: 1px solid var(--line);
+  color: var(--text);
+  font: 10.5px/1.4 var(--mono);
+  padding: 4px 9px;
+  border-radius: 6px;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .12s ease .35s;
+  z-index: 60;
+}
+[data-tip]:hover::after { opacity: 1; transition-delay: .35s; }
 .toolbar button {
   padding: 6px 8px;
   font-size: 12px;
