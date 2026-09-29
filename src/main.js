@@ -150,6 +150,21 @@ async function writeIcon(dir, bytes) {
   await tjs.writeFile(dir.replace(/[\\/]+$/, '') + '/icon.png', bytes);
 }
 
+const exists = (p) => tjs.stat(p).then(() => true, () => false);
+
+// Project copy for Duplicate: everything but build artifacts and deps —
+// the identity (name, numbered title, unique bundle id) is patched after.
+async function copyProject(src, dest) {
+  await tjs.makeDir(dest, { recursive: true });
+  const iter = await tjs.readDir(src);
+  for await (const e of iter) {
+    if (['.build', 'dist', 'node_modules', '.DS_Store'].includes(e.name)) continue;
+    const s = src + '/' + e.name, d = dest + '/' + e.name;
+    if (e.isDirectory) await copyProject(s, d);
+    else await tjs.writeFile(d, await tjs.readFile(s));
+  }
+}
+
 // UA presets. The stock engine UA lacks the "Version/x Safari/x" token, so
 // UA-sniffing sites (Google at least) serve the wrapped app a degraded page
 // — 'browser' picks a first-class citizen of the current engine: Safari on
@@ -315,12 +330,13 @@ export const api = {
   // optional display title overrides the site's own <title>; an optional
   // badge selector mirrors the site's unread count onto the dock icon; the
   // UA preset ('browser' | 'iphone' | 'engine') counters UA-sniffing.
-  async wrap({ parent, url, dir, title, ua, uaPreset, frameless, badge, menubar, alwaysTop }, app) {
+  async wrap({ parent, url, dir, title, ua, uaPreset, frameless, badge, menubar, alwaysTop, external }, app) {
     const argv = ['wrap', url, dir];
     const resolved = resolveUA(uaPreset, ua);
     if (resolved) argv.push('--ua', resolved);
     if (menubar) argv.push('--menubar');
     if (alwaysTop) argv.push('--top');
+    if (external) argv.push('--external', String(external));
     const r = await runStreaming(app, argv, { cwd: parent, label: 'wrap' });
     if (r.code === 0) {
       const root = parent + '/' + dir;
@@ -396,6 +412,30 @@ export const api = {
     } catch { /* folder gone since it was picked */ }
     projects.sort((a, b) => a.dir.localeCompare(b.dir));
     return { projects };
+  },
+
+  // Duplicate a project next to itself: -2, -3, … first free suffix. The
+  // copy gets its own name/title/bundle id, so two wraps of the same site
+  // run side by side as separate containers — the multi-account play.
+  async duplicate({ dir }) {
+    const root = dir.replace(/[\\/]+$/, '');
+    const sep = root.includes('/') ? '/' : '\\';
+    const parent = root.slice(0, root.lastIndexOf(sep));
+    const base = root.slice(root.lastIndexOf(sep) + 1);
+    let n = 1, name, target;
+    do {
+      n++;
+      name = base + '-' + n;
+      target = parent + sep + name;
+    } while (await exists(target));
+    await copyProject(root, target);
+    const cfgPath = target + sep + 'tinyjs.json';
+    const cfg = JSON.parse(dec.decode(await tjs.readFile(cfgPath)));
+    cfg.name = name;
+    cfg.title = (cfg.title ?? base) + ' ' + n;
+    if (cfg.id) cfg.id = cfg.id + n;
+    await tjs.writeFile(cfgPath, enc.encode(JSON.stringify(cfg, null, 2) + '\n'));
+    return { dir: target, title: cfg.title };
   },
 
   // Show the project in Finder / Explorer / the file manager.

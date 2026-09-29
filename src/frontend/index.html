@@ -107,6 +107,10 @@
             </select>
           </div>
           <div class="field grow">
+            <label for="wrapExternal">Open externally <span class="muted">(domains, comma-separated)</span></label>
+            <input id="wrapExternal" type="text" placeholder="accounts.google.com, checkout.stripe.com" spellcheck="false">
+          </div>
+          <div class="field grow">
             <label for="wrapBadge">Unread badge selector <span class="muted">(optional)</span></label>
             <input id="wrapBadge" type="text" placeholder=".notification-count — mirrored to the dock icon every 2s" spellcheck="false">
           </div>
@@ -128,6 +132,7 @@
           <button id="btnRun">Run (dev)</button>
           <button id="btnStop" disabled>Stop</button>
           <button id="btnBuild">Build</button>
+          <button id="btnDuplicate">Duplicate</button>
           <button id="btnIconProject">Icon…</button>
           <button id="btnReveal">Reveal</button>
         </div>

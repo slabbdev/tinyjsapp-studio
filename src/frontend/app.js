@@ -205,6 +205,7 @@ $('btnWrap').addEventListener('click', async () => {
       title: $('wrapTitle').value.trim() || undefined,
       uaPreset: $('wrapUA').value,
       badge: $('wrapBadge').value.trim() || undefined,
+      external: $('wrapExternal').value.trim() || undefined,
       frameless: $('wrapFrameless').checked,
       menubar: $('wrapMenubar').checked,
       alwaysTop: $('wrapAlwaysTop').checked,
@@ -247,6 +248,17 @@ $('btnBuild').addEventListener('click', async () => {
 });
 
 $('btnReveal').addEventListener('click', () => tiny.api.call('reveal', { dir: state.project }));
+
+$('btnDuplicate').addEventListener('click', async () => {
+  try {
+    const r = await tiny.api.call('duplicate', { dir: state.project });
+    log('duplicated → ' + r.dir, 'ok');
+    setProject(r.dir);
+    loadProjects();
+  } catch (e) {
+    log(String(e.message ?? e), 'err');
+  }
+});
 
 // --- window buttons (Windows/Linux; macOS keeps its traffic lights) -------
 
