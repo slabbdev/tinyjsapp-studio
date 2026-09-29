@@ -4,5 +4,6 @@
   "size": "1040x700",
   "id": "app.tinyjsapp.studio",
   "version": "0.1.0",
-  "chrome": { "frame": false, "windowControls": false }
+  "chrome": { "frame": false, "windowControls": false },
+  "contextMenu": false
 }

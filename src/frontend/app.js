@@ -440,5 +440,15 @@ function renderPreview() {
   el.addEventListener('change', renderPreview);
 });
 
+// Custom right-click menu: no WebKit defaults, just the two credits.
+tiny.menu.setContext([
+  { id: 'github', label: 'Show on GitHub' },
+  { separator: true },
+  { id: 'made', label: 'Made with ❤️ and tinyjs', enabled: false },
+]);
+tiny.menu.onContext((id) => {
+  if (id === 'github') tiny.app.shell.open('https://github.com/slabbdev/tinyjsapp-studio');
+});
+
 log('TinyJS App Studio ready.', 'ok');
 renderPreview();
