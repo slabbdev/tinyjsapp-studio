@@ -41,12 +41,6 @@ header {
 /* frameless everywhere: our own pastilles, no native traffic lights */
 
 .brand { display: flex; align-items: baseline; gap: 10px; }
-.brand .dot {
-  width: 10px; height: 10px; border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 12px var(--accent);
-  align-self: center;
-}
 h1 { font-size: 16px; font-weight: 600; margin: 0; letter-spacing: .2px; white-space: nowrap; }
 .brand { flex-shrink: 0; }
 @media (max-width: 1000px) { .tagline { display: none; } }
