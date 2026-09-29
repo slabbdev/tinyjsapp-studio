@@ -164,6 +164,9 @@ const DRAG_STRIP = `// Frameless starter: a drag strip along the top edge so the
   const mount = () => {
     const style = document.createElement('style');
     style.textContent =
+      // overscroll-behavior:none kills macOS rubber-band — without it the
+      // whole layer tree (fixed strip included) bounces past the top edge.
+      'html,body{overscroll-behavior:none!important}' +
       '.tjs-strip{position:fixed;top:0;left:0;right:0;height:40px;z-index:2147483647;' +
       'display:flex;align-items:center;gap:8px;padding:0 16px;' +
       'justify-content:' + (mac ? 'flex-start' : 'flex-end') + '}' +
