@@ -1,7 +1,5 @@
 # TinyJS App Studio
 
-![TinyJS App Studio](assets/banner.png)
-
 A tiny desktop companion for [tinyjs](https://github.com/tarwin/tinyjsapp) —
 create tinyjs apps and turn websites into desktop apps, without opening a
 terminal. Built **with** tinyjs itself, which makes it the two things at once:
@@ -16,8 +14,6 @@ terminal. Built **with** tinyjs itself, which makes it the two things at once:
 
 Built by [@slabbdev](https://github.com/slabbdev). Not an official tinyjs
 project — just what its author considers the demo tinyjs deserved. 🙂
-
-![TinyJS App Studio — projects sidebar, live preview, config inspector](screenshot.png)
 
 ## See it
 
