@@ -209,6 +209,7 @@ $('btnCreate').addEventListener('click', async () => {
       title: $('appTitle').value.trim() || undefined,
       template: $('template').value,
       frameless: $('createFrameless').checked,
+      dots: $('createDots').value !== 'none',
     });
     if (code === 0) {
       setProject(state.parent + '/' + name);
@@ -289,6 +290,7 @@ function syncSubChoices() {
   $('wrapTray').hidden = !menubar;
   $('dotsField').hidden = !frameless || panel;
   if (panel) $('wrapFrameless').checked = true;
+  $('createDotsField').hidden = !$('createFrameless').checked;
 }
 $('wrapMenubar').addEventListener('change', syncSubChoices);
 $('wrapTray').addEventListener('change', () => {
@@ -319,6 +321,7 @@ $('btnNew').addEventListener('click', () => {
     $('appTitle').value = '';
     $('template').value = 'vanilla';
     $('createFrameless').checked = true;
+    $('createDots').value = 'dots';
   }
   state.project = null;
   $('project').hidden = true;
@@ -434,6 +437,7 @@ function renderPreview() {
       tpl.startsWith('vanilla') ? 'zero dependencies' : 'Vite + npm'];
     mk = mockWindow({
       title: name, frameless: $('createFrameless').checked,
+      dots: $('createDots').value !== 'none',
       p: null, host: 'scaffolded from the ' + tpl + ' template', badge: false,
     });
   } else {
@@ -462,7 +466,7 @@ function renderPreview() {
 
 ['wrapUrl', 'wrapName', 'wrapTitle', 'wrapUA', 'wrapDots',
   'wrapFrameless', 'wrapMenubar', 'wrapTray', 'wrapAlwaysTop',
-  'appName', 'appTitle', 'template', 'createFrameless',
+  'appName', 'appTitle', 'template', 'createFrameless', 'createDots',
 ].forEach((id) => {
   const el = $(id);
   if (!el) return;

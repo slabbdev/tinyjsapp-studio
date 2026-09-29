@@ -85,6 +85,13 @@
           </div>
           <div class="sec">Window</div>
           <label class="check"><input type="checkbox" id="createFrameless" checked> frameless</label>
+          <div class="field" id="createDotsField">
+            <label for="createDots">Window buttons</label>
+            <select id="createDots">
+              <option value="dots" selected>with dots — close / min / zoom</option>
+              <option value="none">none — bare draggable site</option>
+            </select>
+          </div>
           <button id="btnCreate" class="primary wide">Create project</button>
           <p class="hint">Zero-dependency templates need nothing but tinyjs.
           The Vite ones run <code>npm install</code> for you.</p>
