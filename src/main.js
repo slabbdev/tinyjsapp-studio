@@ -193,6 +193,7 @@ function resolveUA(preset, custom) {
 // tinyjs.json. Delete the file + "inject" key once you have your own bar.
 const dragStripSource = (withDots) => `(() => {
   const mac = /Mac/i.test(navigator.platform);
+  const WITH_DOTS = ${withDots};
   const mount = () => {
     const style = document.createElement('style');
     style.textContent =
@@ -202,24 +203,26 @@ const dragStripSource = (withDots) => `(() => {
       '.tjs-strip{position:fixed;top:0;left:0;right:0;height:40px;z-index:2147483647;' +
       'display:flex;align-items:center;gap:8px;padding:0 16px;' +
       'justify-content:' + (mac ? 'flex-start' : 'flex-end') + '}' +
-      (withDots ? '.tjs-dot{width:13px;height:13px;padding:0;border-radius:50%;' +
+      (WITH_DOTS ? '.tjs-dot{width:13px;height:13px;padding:0;border-radius:50%;' +
       'border:1px solid rgba(0,0,0,.15);cursor:pointer}' +
       '.tjs-dot:hover{filter:brightness(1.12)}' : '');
     document.head.appendChild(style);
     const bar = document.createElement('div');
     bar.className = 'tjs-strip';
     bar.setAttribute('data-tiny-drag', '');
-    ${withDots ? `const btns = mac
-      ? [['Close', 'close', '#ff5f57'], ['Minimize', 'minimize', '#febc2e'], ['Zoom', 'zoom', '#28c840']]
-      : [['Minimize', 'minimize', '#febc2e'], ['Zoom', 'zoom', '#28c840'], ['Close', 'close', '#ff5f57']];
-    for (const [label, verb, color] of btns) {
-      const b = document.createElement('button');
-      b.className = 'tjs-dot';
-      b.title = label;
-      b.style.background = color;
-      b.addEventListener('click', () => window.tiny?.win[verb]());
-      bar.appendChild(b);
-    }` : '// bare strip: drag only, no window buttons'}
+    if (WITH_DOTS) {
+      const btns = mac
+        ? [['Close', 'close', '#ff5f57'], ['Minimize', 'minimize', '#febc2e'], ['Zoom', 'zoom', '#28c840']]
+        : [['Minimize', 'minimize', '#febc2e'], ['Zoom', 'zoom', '#28c840'], ['Close', 'close', '#ff5f57']];
+      for (const [label, verb, color] of btns) {
+        const b = document.createElement('button');
+        b.className = 'tjs-dot';
+        b.title = label;
+        b.style.background = color;
+        b.addEventListener('click', () => window.tiny?.win[verb]());
+        bar.appendChild(b);
+      }
+    }
     document.body.appendChild(bar);
   };
   // document-start: <head> doesn't exist yet in WebKit — wait for it.
