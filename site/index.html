@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TinyJS App Studio — native apps have never been this easy</title>
+  <meta name="description" content="A tiny desktop companion for tinyjs: create apps from templates or wrap any website into a real ~6 MB desktop app. No terminal, no Electron.">
+  <link rel="icon" type="image/png" href="./favicon.png">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://slabbdev.github.io/tinyjsapp-studio/">
+  <meta property="og:title" content="TinyJS App Studio — native apps have never been this easy">
+  <meta property="og:description" content="Create tinyjs apps or wrap any website into a real ~6 MB desktop app, from one native window. No terminal, no Electron.">
+  <meta property="og:image" content="https://slabbdev.github.io/tinyjsapp-studio/img/og.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+
+  <nav class="nav" id="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="#top">
+        <img src="./img/icon.webp" alt="" width="28" height="28">
+        <span>TinyJS&nbsp;<b>App&nbsp;Studio</b></span>
+      </a>
+      <div class="nav-links">
+        <a href="#apps">Apps</a>
+        <a href="#showcase">Showcase</a>
+        <a href="#features">Features</a>
+        <a href="#get">Get it</a>
+      </div>
+      <a class="btn btn-ghost btn-sm nav-gh" href="https://github.com/slabbdev/tinyjsapp-studio" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        <span>GitHub</span>
+      </a>
+    </div>
+  </nav>
+
+  <header class="hero" id="top">
+    <div class="hero-bg" aria-hidden="true">
+      <div class="blob blob-a"></div>
+      <div class="blob blob-b"></div>
+      <div class="grid-overlay"></div>
+    </div>
+    <div class="wrap hero-inner">
+      <div class="hero-copy">
+        <p class="pill" data-reveal="up">⚡ v0.1.0 out now · macOS · Windows &amp; Linux in beta</p>
+        <h1 data-reveal="up" style="--d:.08s">Native apps have never been <span class="grad">this easy.</span></h1>
+        <p class="lead" data-reveal="up" style="--d:.16s">
+          A tiny desktop companion for <a href="https://tinyjs.app" target="_blank" rel="noopener">tinyjs</a> —
+          create apps from templates or wrap any website into a real ~6&nbsp;MB desktop app,
+          all from one native window. No terminal. No Electron.
+        </p>
+        <div class="cta-row" data-reveal="up" style="--d:.24s">
+          <a class="btn btn-primary" href="https://github.com/slabbdev/tinyjsapp-studio/releases/latest" target="_blank" rel="noopener">Download <span id="dl-ver">v0.1.0</span></a>
+          <a class="btn btn-ghost" href="https://github.com/slabbdev/tinyjsapp-studio" target="_blank" rel="noopener">★ Star on GitHub</a>
+          <a class="link-more" href="#showcase">See it in action ↓</a>
+        </div>
+        <ul class="stats" data-reveal="up" style="--d:.32s">
+          <li><b>~6 MB</b><span>a wrapped app</span></li>
+          <li><b>0</b><span>Electron, bundled browsers</span></li>
+          <li><b>3</b><span>platforms targeted</span></li>
+        </ul>
+      </div>
+      <div class="hero-visual" data-reveal="right">
+        <div class="frame frame-tilt glow" id="hero-frame">
+          <img src="./img/hero.webp" alt="TinyJS App Studio — the workspace with projects sidebar, live preview and the Wrap panel" width="1400" height="1056" fetchpriority="high">
+        </div>
+        <span class="chip chip-float cf-1">menu bar app</span>
+        <span class="chip chip-float cf-2">frameless</span>
+        <span class="chip chip-float cf-3">UA&nbsp;:&nbsp;iPhone</span>
+        <span class="chip chip-float cf-4">live logs ▍</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee-track">
+      <span>wrap any site</span><i>●</i><span>menu-bar apps</span><i>●</i><span>frameless windows</span><i>●</i><span>CodeMirror 6</span><i>●</i><span>Vite + React / Vue / Svelte / Solid</span><i>●</i><span>live streamed logs</span><i>●</i><span>per-origin API gate</span><i>●</i><span>zero-dependency templates</span><i>●</i><span>native folder pickers</span><i>●</i><span>~6 MB apps</span><i>●</i><span>no terminal required</span><i>●</i>
+      <span>wrap any site</span><i>●</i><span>menu-bar apps</span><i>●</i><span>frameless windows</span><i>●</i><span>CodeMirror 6</span><i>●</i><span>Vite + React / Vue / Svelte / Solid</span><i>●</i><span>live streamed logs</span><i>●</i><span>per-origin API gate</span><i>●</i><span>zero-dependency templates</span><i>●</i><span>native folder pickers</span><i>●</i><span>~6 MB apps</span><i>●</i><span>no terminal required</span><i>●</i>
+    </div>
+  </div>
+
+  <section class="section" id="apps">
+    <div class="wrap">
+      <p class="eyebrow" data-reveal="up">apps, not tabs</p>
+      <h2 data-reveal="up" style="--d:.06s">What will you ship today?</h2>
+      <p class="section-lead" data-reveal="up" style="--d:.12s">Three kinds of tiny desktop apps, one window to make them.</p>
+      <div class="appgrid">
+        <article class="appcard" data-reveal="left">
+          <div class="appcard-chrome"><span></span><span></span><span></span><em>my-app</em></div>
+          <div class="appcard-ic ic-blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>
+          </div>
+          <h3>The from-scratch app</h3>
+          <p><code>tinyjs new</code>, minus the terminal — zero-dependency vanilla templates, or a Vite setup with React, Vue, Svelte or Solid, TypeScript included.</p>
+          <div class="chips"><span>vanilla</span><span>vite</span><span>ts</span></div>
+        </article>
+        <article class="appcard" data-reveal="up" style="--d:.1s">
+          <div class="appcard-chrome"><span></span><span></span><span></span><em>wrapped-site</em></div>
+          <div class="appcard-ic ic-orange">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.9 5.6 3.9 9S14.5 18.4 12 21c-2.5-2.6-3.9-5.6-3.9-9S9.5 5.6 12 3Z"/></svg>
+          </div>
+          <h3>The wrapped site</h3>
+          <p>Paste a URL, hit <em>Wrap site</em> — any website becomes a real desktop app with its own icon, downloads and popup handling.</p>
+          <div class="chips"><span>any URL</span><span>own icon</span><span>~6 MB</span></div>
+        </article>
+        <article class="appcard" data-reveal="right" style="--d:.2s">
+          <div class="appcard-chrome"><span></span><span></span><span></span><em>menubar.app</em></div>
+          <div class="appcard-ic ic-violet">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="7" rx="2"/><path d="M5 7.5h.01M8 7.5h.01"/><path d="M4 15h6M4 19h10"/></svg>
+          </div>
+          <h3>The menu-bar app</h3>
+          <p>Lives in the system tray. Click the icon and your site drops down in a panel under it — or opens as an ordinary window. Always on top if you like.</p>
+          <div class="chips"><span>tray</span><span>dropdown panel</span><span>always on top</span></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-alt" id="showcase">
+    <div class="wrap">
+      <p class="eyebrow" data-reveal="up">the tour</p>
+      <h2 data-reveal="up" style="--d:.06s">Scroll. Watch it work.</h2>
+      <p class="section-lead" data-reveal="up" style="--d:.12s">Real windows, captured live — the same Studio you'll be using.</p>
+
+      <div class="showrow">
+        <figure class="frame frame-tilt glow" data-reveal="left">
+          <img src="./img/wrap-panel.webp" alt="The Wrap tab — the preview mirrors every window option" width="1280" height="966" loading="lazy" decoding="async">
+        </figure>
+        <div class="showcopy" data-reveal="right" style="--d:.12s">
+          <p class="eyebrow">01 · wrap</p>
+          <h3>Wrap any site</h3>
+          <p>Paste a URL and pick your window modes — frameless, buttons, menu bar — the preview mirrors every option live. Hit <em>Wrap site</em> and a ~6&nbsp;MB desktop app comes out the other end.</p>
+          <div class="chips"><span>live preview</span><span>window modes</span><span>own icon</span></div>
+        </div>
+      </div>
+
+      <div class="showrow showrow-flip">
+        <figure class="frame frame-tilt glow" data-reveal="right">
+          <img src="./img/wrapped.webp" alt="A wrapped GitHub profile in a frameless native window" width="1280" height="750" loading="lazy" decoding="async">
+        </figure>
+        <div class="showcopy" data-reveal="left" style="--d:.12s">
+          <p class="eyebrow">02 · real windows</p>
+          <h3>Really wrapped, really native</h3>
+          <p>The result is an ordinary desktop window — frameless or not — with whatever chrome you configured. Not a browser tab with delusions of grandeur.</p>
+          <div class="chips"><span>native window</span><span>downloads</span><span>popups handled</span></div>
+        </div>
+      </div>
+
+      <div class="showrow">
+        <figure class="frame frame-tilt glow" data-reveal="left">
+          <img src="./img/menubar.webp" alt="Menu-bar mode — the wrapped site opens under its tray icon" width="1280" height="750" loading="lazy" decoding="async">
+        </figure>
+        <div class="showcopy" data-reveal="right" style="--d:.12s">
+          <p class="eyebrow">03 · menu bar</p>
+          <h3>Menu-bar apps, live</h3>
+          <p>Menu-bar mode puts a tray icon in the system menu bar. Click it and your site drops down in a panel anchored under the icon — or opens as a normal window, your call.</p>
+          <div class="chips"><span>tray icon</span><span>dropdown panel</span><span>tray click → window</span></div>
+        </div>
+      </div>
+
+      <div class="showrow showrow-flip">
+        <figure class="frame frame-tilt glow" data-reveal="right">
+          <img src="./img/dropdown.webp" alt="A GitHub profile pinned above everything in an always-on-top dropdown panel" width="1280" height="750" loading="lazy" decoding="async">
+        </figure>
+        <div class="showcopy" data-reveal="left" style="--d:.12s">
+          <p class="eyebrow">04 · one click away</p>
+          <h3>Always one click away</h3>
+          <p>Always-on-top plus dropdown panel means the site is just <em>there</em> — a GitHub profile, a dashboard, a docs page — pinned above everything else you're doing.</p>
+          <div class="chips"><span>always on top</span><span>panel mode</span><span>UA presets</span></div>
+        </div>
+      </div>
+
+      <div class="showrow">
+        <figure class="frame frame-tilt glow" data-reveal="left">
+          <img src="./img/editor.webp" alt="The file offcanvas — index.html open in the CodeMirror editor" width="1280" height="966" loading="lazy" decoding="async">
+        </figure>
+        <div class="showcopy" data-reveal="right" style="--d:.12s">
+          <p class="eyebrow">05 · the offcanvas</p>
+          <h3>A real editor in there</h3>
+          <p>Click a file in a project's tree: code opens in CodeMirror 6 — line numbers, folding, syntax highlighting — edit and save without ever leaving the Studio.</p>
+          <div class="chips"><span>CodeMirror 6</span><span>edit &amp; save</span><span>images preview</span></div>
+        </div>
+      </div>
+
+      <div class="showrow showrow-flip">
+        <figure class="frame frame-tilt glow" data-reveal="right">
+          <img src="./img/iphone.webp" alt="iPhone user-agent preset — the preview becomes a phone frame" width="1280" height="966" loading="lazy" decoding="async">
+        </figure>
+        <div class="showcopy" data-reveal="left" style="--d:.12s">
+          <p class="eyebrow">06 · iphone mode</p>
+          <h3>See mobile before you wrap</h3>
+          <p>The iPhone user-agent preset also reshapes the preview into a phone frame — check the mobile layout before you commit it to a desktop app.</p>
+          <div class="chips"><span>phone frame</span><span>UA presets</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="features">
+    <div class="wrap">
+      <p class="eyebrow" data-reveal="up">under the hood</p>
+      <h2 data-reveal="up" style="--d:.06s">Everything in one place.</h2>
+      <p class="section-lead" data-reveal="up" style="--d:.12s">Sidebar, stage, inspector — with the CLI narrating every step.</p>
+      <div class="bento">
+        <article class="bento-card bento-wide" data-reveal="up">
+          <div class="bento-copy">
+            <h3>Projects, files, previews</h3>
+            <p>A projects sidebar with a file tree per project, a live preview stage, a config inspector. Click an image in the tree — it previews right there, generated icons included.</p>
+          </div>
+          <figure class="frame"><img src="./img/image-preview.webp" alt="A generated icon previewed from the file tree" width="1280" height="966" loading="lazy" decoding="async"></figure>
+        </article>
+        <article class="bento-card" data-reveal="up" style="--d:.08s">
+          <div class="loglines" aria-hidden="true">
+            <span>$ tinyjs build</span>
+            <span class="ll-ok">✓ frontend bundled</span>
+            <span class="ll-ok">✓ main process written</span>
+            <span class="ll-dim">icon 100.8 KB … ok</span>
+            <span>app ready → dist/</span>
+          </div>
+          <h3>Live logs</h3>
+          <p>Every line of <code>tinyjs dev</code> and <code>tinyjs build</code> streams into the window as it happens.</p>
+        </article>
+        <article class="bento-card" data-reveal="up" style="--d:.16s">
+          <div class="gate" aria-hidden="true"><span>🌐 wrapped page</span><b>⇢ ✕ ⇠</b><span>📁 your disk</span></div>
+          <h3>The per-origin gate</h3>
+          <p>Wrapped pages get no access to your machine beyond their own window and dialogs — that line is drawn by tinyjs' per-origin API policy, and the Studio just stays honest about it.</p>
+        </article>
+        <article class="bento-card" data-reveal="up" style="--d:.08s">
+          <div class="chips chips-big"><span>▶ run</span><span>⌘ build</span><span>■ stop</span><span>⧉ duplicate</span><span>⌕ reveal</span></div>
+          <h3>Drive the CLI</h3>
+          <p>All the project actions — one click each, on the selected project.</p>
+        </article>
+        <article class="bento-card" data-reveal="up" style="--d:.16s">
+          <h3>Bring your own folder</h3>
+          <p>Point the Studio at any tinyjs project anywhere on disk — it joins the sidebar with all its actions, and nothing gets moved.</p>
+          <p class="mono-note">📁 Open existing project…</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-alt" id="get">
+    <div class="wrap">
+      <p class="eyebrow" data-reveal="up">get it</p>
+      <h2 data-reveal="up" style="--d:.06s">Two ways in.</h2>
+      <div class="getgrid">
+        <article class="getcard" data-reveal="left">
+          <h3>Download the app</h3>
+          <p><b id="dl-ver2">v0.1.0</b> ships a signed <code>.app</code> for macOS, plus Windows and Linux builds — beta platforms of tinyjs itself.</p>
+          <div class="chips"><span class="ok">● macOS</span><span>○ Windows — beta</span><span>○ Linux — beta</span></div>
+          <a class="btn btn-primary" href="https://github.com/slabbdev/tinyjsapp-studio/releases/latest" target="_blank" rel="noopener">Latest release →</a>
+        </article>
+        <article class="getcard" data-reveal="right" style="--d:.12s">
+          <h3>Run it from source</h3>
+          <div class="codeblock">
+            <code><span class="c-dim">$</span> git clone https://github.com/slabbdev/tinyjsapp-studio<br>&nbsp;&nbsp;<span class="c-dim">$</span> cd tinyjsapp-studio<br>&nbsp;&nbsp;<span class="c-dim">$</span> tinyjs dev</code>
+            <button class="copybtn" id="copybtn" aria-label="Copy commands">copy</button>
+          </div>
+          <p class="fine">Needs the <a href="https://tinyjs.app" target="_blank" rel="noopener">tinyjs</a> CLI. <b>wrap</b> is brand new — until it lands in a tinyjs release, point the Studio at a tinyjsapp checkout that has it (auto-found at <code>../tinyjsapp</code>, or set <code>TINYJS_BIN</code>).</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <img src="./img/icon.webp" alt="" width="40" height="40">
+      <div>
+        <p><b>TinyJS App Studio</b> — built with tinyjs by <a href="https://github.com/slabbdev" target="_blank" rel="noopener">@slabbdev</a>. Not an official tinyjs project, just the demo tinyjs deserved. 🙂</p>
+        <p class="fine">tinyjs by <a href="https://github.com/tarwin" target="_blank" rel="noopener">Tarwin Stroh-Spijer</a> · <a href="https://tinyjs.app" target="_blank" rel="noopener">tinyjs.app</a> · <a href="https://buymeacoffee.com/samlabbe" target="_blank" rel="noopener">☕ Buy me a coffee</a> · <a href="https://github.com/slabbdev/tinyjsapp-studio/blob/main/LICENSE" target="_blank" rel="noopener">MIT</a></p>
+        <p class="fine">This site: static HTML, no build step, no trackers — like the Studio, no Electron.</p>
+      </div>
+      <a class="btn btn-ghost btn-sm" href="https://github.com/slabbdev/tinyjsapp-studio" target="_blank" rel="noopener">Source ↗</a>
+    </div>
+  </footer>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>
