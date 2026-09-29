@@ -20,114 +20,111 @@
     </div>
   </header>
 
-  <section class="folder-row">
-    <label>Projects folder</label>
-    <button id="pickFolder">Choose…</button>
-    <span id="folderPath" class="path muted">pick where new projects live</span>
-    <div class="icon-pick-wrap">
-      <label>Project icon</label>
-      <div class="icon-pick">
-        <span id="iconPrev" class="icon-preview">auto</span>
-        <button id="btnIconPick">Choose…</button>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="side-label">Projects <span id="projCount" class="count muted"></span></div>
+      <div id="projList" class="proj-list">
+        <div class="side-empty muted">no projects yet</div>
       </div>
-    </div>
-  </section>
-
-  <nav class="tabs">
-    <button class="tab" data-tab="create">Create an app</button>
-    <button class="tab active" data-tab="wrap">Wrap a website</button>
-  </nav>
-
-  <main>
-    <section id="tab-create" class="pane" hidden>
-      <div class="row">
-        <div class="field">
-          <label for="appName">Folder</label>
-          <input id="appName" type="text" placeholder="myapp" spellcheck="false">
+      <div class="side-foot">
+        <span id="folderPath" class="side-path muted" title="">no folder chosen</span>
+        <div class="side-btns">
+          <button id="pickFolder">Folder…</button>
+          <button id="btnRescan">Rescan</button>
         </div>
-        <div class="field">
-          <label for="appTitle">Display name</label>
-          <input id="appTitle" type="text" placeholder="auto" spellcheck="false">
-        </div>
-        <div class="field">
-          <label for="template">Template</label>
-          <select id="template">
-            <option value="vanilla">vanilla — zero dependencies</option>
-            <option value="vanilla-ts">vanilla-ts — zero deps, typed</option>
-            <option value="react-ts">react-ts — Vite + npm</option>
-            <option value="vue-ts">vue-ts — Vite + npm</option>
-            <option value="svelte-ts">svelte-ts — Vite + npm</option>
-            <option value="solid-ts">solid-ts — Vite + npm</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Window</label>
-          <label class="check"><input type="checkbox" id="createFrameless" checked> frameless</label>
-        </div>
-        <button id="btnCreate" class="primary">Create project</button>
-      </div>
-      <p class="hint">Zero-dependency templates need nothing but tinyjs. The Vite
-      ones run <code>npm install</code> for you.</p>
-    </section>
-
-    <section id="tab-wrap" class="pane">
-      <div class="row">
-        <div class="field grow">
-          <label for="wrapUrl">Site URL</label>
-          <input id="wrapUrl" type="text" placeholder="https://airtable.com" spellcheck="false">
-        </div>
-        <div class="field">
-          <label for="wrapName">Folder</label>
-          <input id="wrapName" type="text" placeholder="auto" spellcheck="false">
-        </div>
-        <div class="field">
-          <label for="wrapTitle">Display name</label>
-          <input id="wrapTitle" type="text" placeholder="site title" spellcheck="false">
-        </div>
-        <div class="field">
-          <label>Window</label>
-          <label class="check"><input type="checkbox" id="wrapFrameless" checked> frameless</label>
-        </div>
-        <button id="btnWrap" class="primary">Wrap site</button>
-      </div>
-      <div class="row">
-        <div class="field grow">
-          <label for="wrapBadge">Unread badge selector <span class="muted">(optional)</span></label>
-          <input id="wrapBadge" type="text" placeholder=".notification-count — mirrored to the dock icon every 2s" spellcheck="false">
+        <div class="side-icon">
+          <span id="iconPrev" class="icon-preview">auto</span>
+          <button id="btnIconPick">Icon…</button>
         </div>
       </div>
-      <p class="hint">Turns the site into a real desktop app: native window,
-      downloads, popup handling — and the site gets <strong>no</strong> access
-      to your machine beyond dialogs and its own window. Frameless injects a
-      drag strip so the window stays movable. A badge selector watches the
-      element holding the unread count and mirrors it onto the dock icon.
-      Needs a tinyjs with the <code>wrap</code> command (see README).</p>
-    </section>
+    </aside>
 
-    <section id="projects" class="pane projects" hidden>
-      <div class="row">
-        <span class="path">Your projects</span>
-        <span id="projCount" class="count muted"></span>
-        <span class="grow"></span>
-        <button id="btnRescan">Rescan</button>
-      </div>
-      <div id="projCards" class="cards"></div>
-    </section>
+    <main>
+      <nav class="tabs">
+        <button class="tab" data-tab="create">Create an app</button>
+        <button class="tab active" data-tab="wrap">Wrap a website</button>
+      </nav>
 
-    <section id="project" class="pane project" hidden>
-      <div class="row">
-        <span id="projPath" class="path"></span>
-        <span class="grow"></span>
-        <button id="btnRun">Run (dev)</button>
-        <button id="btnStop" disabled>Stop</button>
-        <button id="btnBuild">Build</button>
-        <button id="btnIconProject">Icon…</button>
-        <button id="btnReveal">Reveal</button>
-      </div>
-    </section>
+      <section id="tab-create" class="pane" hidden>
+        <div class="row">
+          <div class="field">
+            <label for="appName">Folder</label>
+            <input id="appName" type="text" placeholder="myapp" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="appTitle">Display name</label>
+            <input id="appTitle" type="text" placeholder="auto" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="template">Template</label>
+            <select id="template">
+              <option value="vanilla">vanilla — zero dependencies</option>
+              <option value="vanilla-ts">vanilla-ts — zero deps, typed</option>
+              <option value="react-ts">react-ts — Vite + npm</option>
+              <option value="vue-ts">vue-ts — Vite + npm</option>
+              <option value="svelte-ts">svelte-ts — Vite + npm</option>
+              <option value="solid-ts">solid-ts — Vite + npm</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Window</label>
+            <label class="check"><input type="checkbox" id="createFrameless" checked> frameless</label>
+          </div>
+          <button id="btnCreate" class="primary">Create project</button>
+        </div>
+        <p class="hint">Zero-dependency templates need nothing but tinyjs. The Vite
+        ones run <code>npm install</code> for you.</p>
+      </section>
 
-    <pre id="log" class="log muted">logs will stream here…</pre>
-  </main>
+      <section id="tab-wrap" class="pane">
+        <div class="row">
+          <div class="field grow">
+            <label for="wrapUrl">Site URL</label>
+            <input id="wrapUrl" type="text" placeholder="https://airtable.com" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="wrapName">Folder</label>
+            <input id="wrapName" type="text" placeholder="auto" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="wrapTitle">Display name</label>
+            <input id="wrapTitle" type="text" placeholder="site title" spellcheck="false">
+          </div>
+          <div class="field">
+            <label>Window</label>
+            <label class="check"><input type="checkbox" id="wrapFrameless" checked> frameless</label>
+          </div>
+          <button id="btnWrap" class="primary">Wrap site</button>
+        </div>
+        <div class="row">
+          <div class="field grow">
+            <label for="wrapBadge">Unread badge selector <span class="muted">(optional)</span></label>
+            <input id="wrapBadge" type="text" placeholder=".notification-count — mirrored to the dock icon every 2s" spellcheck="false">
+          </div>
+        </div>
+        <p class="hint">Turns the site into a real desktop app: native window,
+        downloads, popup handling — and the site gets <strong>no</strong> access
+        to your machine beyond dialogs and its own window. Frameless injects a
+        drag strip so the window stays movable. A badge selector watches the
+        element holding the unread count and mirrors it onto the dock icon.
+        Needs a tinyjs with the <code>wrap</code> command (see README).</p>
+      </section>
+
+      <section id="project" class="pane project" hidden>
+        <div class="row">
+          <span id="projPath" class="path"></span>
+          <span class="grow"></span>
+          <button id="btnRun">Run (dev)</button>
+          <button id="btnStop" disabled>Stop</button>
+          <button id="btnBuild">Build</button>
+          <button id="btnIconProject">Icon…</button>
+          <button id="btnReveal">Reveal</button>
+        </div>
+      </section>
+
+      <pre id="log" class="log muted">logs will stream here…</pre>
+    </main>
+  </div>
 
   <script src="app.js" type="module"></script>
 </body>

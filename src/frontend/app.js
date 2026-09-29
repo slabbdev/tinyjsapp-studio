@@ -92,29 +92,34 @@ $('pickFolder').addEventListener('click', async () => {
 // --- your projects: every tinyjs project in the chosen folder --------------
 
 async function loadProjects() {
-  if (!state.parent) return;
-  const { projects } = await tiny.api.call('listProjects', { parent: state.parent });
-  const wrap = $('projCards');
-  wrap.innerHTML = '';
-  $('projects').hidden = false;
-  $('projCount').textContent = projects.length
-    ? projects.length + ' in ' + state.parent
-    : 'none here yet — create or wrap one';
+  const list = $('projList');
+  list.innerHTML = '';
+  const { projects } = state.parent
+    ? await tiny.api.call('listProjects', { parent: state.parent })
+    : { projects: [] };
+  $('projCount').textContent = projects.length ? String(projects.length) : '';
+  if (!projects.length) {
+    const empty = document.createElement('div');
+    empty.className = 'side-empty muted';
+    empty.textContent = state.parent ? 'no projects here yet' : 'choose a folder first';
+    list.appendChild(empty);
+    return;
+  }
   for (const p of projects) {
-    const card = document.createElement('button');
-    card.className = 'card' + (state.project === state.parent + '/' + p.dir ? ' active' : '');
+    const item = document.createElement('button');
+    item.className = 'proj-item' + (state.project === state.parent + '/' + p.dir ? ' active' : '');
     const visual = p.icon
       ? `<img src="${p.icon}" alt="">`
       : `<span class="ph">${(p.title[0] ?? '?').toUpperCase()}</span>`;
-    card.innerHTML = `${visual}<span class="t"></span><span class="s"></span>`;
-    card.querySelector('.t').textContent = p.title;
-    card.querySelector('.s').textContent = p.url
+    item.innerHTML = `${visual}<span class="txt"><span class="t"></span><span class="s"></span></span>`;
+    item.querySelector('.t').textContent = p.title;
+    item.querySelector('.s').textContent = p.url
       ? new URL(p.url).hostname : 'local app';
-    card.addEventListener('click', () => {
+    item.addEventListener('click', () => {
       setProject(state.parent + '/' + p.dir);
       loadProjects();
     });
-    wrap.appendChild(card);
+    list.appendChild(item);
   }
 }
 $('btnRescan').addEventListener('click', loadProjects);
