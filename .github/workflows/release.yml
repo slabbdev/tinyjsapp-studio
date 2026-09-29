@@ -1,0 +1,95 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest }
+          - { os: windows-latest }
+          - { os: ubuntu-latest }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tinyjs (macOS / Linux)
+        if: runner.os != 'Windows'
+        run: curl -fsSL https://tinyjs.app/install | sh
+
+      - name: Install tinyjs (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: irm https://tinyjs.app/install.ps1 | iex
+
+      - name: WebKit dev packages (Linux build links against them)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev
+
+      - name: Build
+        run: tinyjs build
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          cd dist
+          app=$(find . -maxdepth 1 -name "*.app" | head -1 | sed 's|^\./||')
+          ditto -c -k --sequesterRDir --keepParent "$app" "../tinyjsapp-studio-macos.zip"
+          cd ..
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path dist\* -DestinationPath tinyjsapp-studio-windows.zip
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          cd dist
+          tar czf ../tinyjsapp-studio-linux.tar.gz *
+          cd ..
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tinyjsapp-studio-${{ runner.os }}
+          path: tinyjsapp-studio-*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: rel
+      - name: Create the GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: TinyJS App Studio ${{ github.ref_name }}
+          body: |
+            TinyJS App Studio — create tinyjs apps and wrap websites into
+            desktop apps, without a terminal.
+
+            **macOS**: unzip and drag to Applications (ad-hoc signed —
+            right-click → Open on first launch).
+            **Windows**: unzip and run the .exe (WebView2 required —
+            preinstalled on Windows 11).
+            **Linux**: untar and run (needs libwebkit2gtk-4.1).
+
+            Built with [tinyjs](https://tinyjs.app) — no Electron, no bundled
+            browser.
+          files: rel/*
