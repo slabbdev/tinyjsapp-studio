@@ -14,6 +14,9 @@
 
 * { box-sizing: border-box; }
 
+/* author display rules must never defeat the hidden attribute */
+[hidden] { display: none !important; }
+
 html, body { height: 100%; }
 
 body {
@@ -236,7 +239,7 @@ body.mac #btnMax { order: 2; }
   padding: 20px;
 }
 
-/* slim IDE toolbar above the stage: compact actions left, path right */
+/* slim IDE toolbar above the stage: icon actions left, path right */
 .toolbar {
   display: flex;
   gap: 6px;
@@ -246,15 +249,17 @@ body.mac #btnMax { order: 2; }
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 6px 8px;
+  overflow: hidden;
 }
 .toolbar button {
-  padding: 5px 10px;
+  padding: 6px 8px;
   font-size: 12px;
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  flex-shrink: 0;
 }
-.toolbar button svg { width: 12px; height: 12px; flex-shrink: 0; }
+.toolbar button svg { width: 13px; height: 13px; flex-shrink: 0; }
 .toolbar .path {
   min-width: 0;
   overflow: hidden;
