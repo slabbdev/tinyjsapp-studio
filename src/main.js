@@ -328,15 +328,15 @@ export const api = {
 
   // tinyjs new <name> — runs inside the chosen projects folder. An optional
   // display title (what the OS shows) is patched into tinyjs.json after.
-  async create({ parent, name, title, template, frameless, dots }, app) {
-    const argv = ['new', name];
+  async create({ parent, dir, title, template, frameless, dots }, app) {
+    const argv = ['new', dir];
     if (template && template !== 'vanilla') argv.push('--template', template);
     const r = await runStreaming(app, argv, { cwd: parent, label: 'create' });
     if (r.code === 0) {
-      const dir = parent + '/' + name;
-      if (title && title !== name) await patchTitle(dir, title);
-      await applyFinishing(dir, { frameless, dots });
-      if (pendingIcon) await writeIcon(dir, pendingIcon);
+      const root = parent + '/' + dir;
+      if (title && title !== dir) await patchTitle(root, title);
+      await applyFinishing(root, { frameless, dots });
+      if (pendingIcon) await writeIcon(root, pendingIcon);
     }
     return r;
   },
