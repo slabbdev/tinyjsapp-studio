@@ -389,6 +389,7 @@ function renderPreview() {
     const menubar = $('wrapMenubar').checked;
     const panel = menubar && $('wrapTray').value === 'panel';
     const frameless = $('wrapFrameless').checked || panel;
+    const ua = $('wrapUA').value;
     const uaSel = $('wrapUA').selectedOptions[0]?.textContent.split('—')[0].trim();
     if (frameless) chips.push('frameless');
     if (menubar) chips.push(panel ? 'menu bar · panel' : 'menu bar · window');

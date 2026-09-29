@@ -1,11 +1,12 @@
 :root {
-  --bg: #0f1116;
-  --panel: #161a22;
-  --line: #262c38;
-  --text: #e8eaf0;
-  --muted: #8b93a7;
-  --accent: #6c8cff;
-  --accent-dim: #3c56b0;
+  /* neutral VS Code-style grays — no blue cast */
+  --bg: #1f1f1f;
+  --panel: #252526;
+  --line: #3c3c3c;
+  --text: #d4d4d4;
+  --muted: #8a8a8a;
+  --accent: #0e639c;
+  --accent-dim: #007acc;
   --ok: #4cc38a;
   --err: #f2726f;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -224,8 +225,8 @@ body.mac #btnMax { order: 2; }
   border: 1px solid var(--line);
   border-radius: 10px;
   background:
-    radial-gradient(circle at 1px 1px, #1d2330 1px, transparent 0) 0 0 / 22px 22px,
-    #0c0e13;
+    radial-gradient(circle at 1px 1px, #2b2b2b 1px, transparent 0) 0 0 / 22px 22px,
+    #191919;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -256,7 +257,7 @@ body.mac #btnMax { order: 2; }
   height: 132px;
   flex-shrink: 0;
   overflow-y: auto;
-  background: #0a0c10;
+  background: #191919;
   border: 1px solid var(--line);
   border-radius: 10px;
   font: 11px var(--mono);
