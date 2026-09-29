@@ -711,30 +711,6 @@ label.check input:focus-visible { outline: 2px solid var(--accent-dim); outline-
 }
 .oc-img img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, .4); }
 
-.ed-wrap { position: relative; flex: 1; overflow: hidden; background: #191919; }
-.ed-hl, .ed-ta {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  padding: 12px;
-  border: 0;
-  font: 12px/1.55 var(--mono);
-  white-space: pre;
-  overflow: auto;
-  tab-size: 2;
-}
-.ed-hl { pointer-events: none; color: var(--text); }
-.ed-hl code { display: block; min-height: 100%; }
-.ed-ta {
-  color: transparent;
-  caret-color: var(--text);
-  background: transparent;
-  resize: none;
-  outline: none;
-  -webkit-user-select: text;
-  user-select: text;
-}
-.tk-c { color: #6a9955; font-style: italic; }
-.tk-s { color: #ce9178; }
-.tk-k { color: #569cd6; }
-.tk-n { color: #b5cea8; }
+.ed-wrap { flex: 1; overflow: hidden; }
+.ed-wrap .cm-editor { height: 100%; font-size: 12.5px; }
+.ed-wrap .cm-scroller { overflow: auto; font-family: var(--mono); }
