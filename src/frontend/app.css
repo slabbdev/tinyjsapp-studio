@@ -236,18 +236,26 @@ body.mac #btnMax { order: 2; }
   padding: 20px;
 }
 
-.actionbar {
-  margin-top: 12px;
+/* slim IDE toolbar above the stage: compact actions left, path right */
+.toolbar {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
-  flex-wrap: wrap;
+  margin-bottom: 10px;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 10px 12px;
+  border-radius: 8px;
+  padding: 6px 8px;
 }
-.path { font: 11.5px var(--mono); color: var(--muted); }
+.toolbar button { padding: 5px 10px; font-size: 12px; }
+.toolbar .path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-left: 6px;
+}
+.path { font: 11px var(--mono); color: var(--muted); }
 .grow { flex: 1; }
 .muted { color: var(--muted); }
 

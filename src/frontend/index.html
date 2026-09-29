@@ -39,17 +39,17 @@
     </aside>
 
     <section class="center">
-      <div id="stage" class="stage"></div>
-      <section id="project" class="actionbar" hidden>
-        <span id="projPath" class="path"></span>
-        <span class="grow"></span>
-        <button id="btnRun">Run (dev)</button>
+      <section id="project" class="toolbar" hidden>
+        <button id="btnRun" class="primary">Run</button>
         <button id="btnStop" disabled>Stop</button>
         <button id="btnBuild">Build</button>
         <button id="btnDuplicate">Duplicate</button>
         <button id="btnIconProject">Icon…</button>
         <button id="btnReveal">Reveal</button>
+        <span class="grow"></span>
+        <span id="projPath" class="path"></span>
       </section>
+      <div id="stage" class="stage"></div>
       <pre id="log" class="log muted">logs will stream here…</pre>
     </section>
 
