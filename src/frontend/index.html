@@ -11,6 +11,7 @@
       <h1>TinyJS App Studio</h1>
       <span class="tagline">create &amp; wrap, no terminal</span>
     </div>
+    <span id="cliStatus" class="status"></span>
     <div class="wincontrols">
       <button id="btnMin" data-tip="Minimize"></button>
       <button id="btnMax" data-tip="Zoom"></button>
@@ -133,8 +134,9 @@
           </div>
           <button id="btnGenerate" class="primary wide">Wrap site</button>
           <p class="hint">The preview mirrors every option. Run applies the
-          form, then launches. Needs a tinyjs with the <code>wrap</code>
-          command for sites (see README).</p>
+          form, then launches. The <code>wrap</code> command is detected
+          automatically — if your tinyjs doesn't have it yet, Create / Run /
+          Build still work (see README).</p>
         </section>
       </div>
     </aside>

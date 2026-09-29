@@ -12,6 +12,8 @@ const state = {
   project: null,  // the project run/build/reveal act on
   source: 'wrap', // what the inspector generates: 'wrap' (a URL) | 'create' (a template)
   running: false,
+  cli: null,        // last CLI status from the backend: {found, bin, version, wrap}
+  setupRunning: false,
 };
 
 function log(line, cls) {
@@ -43,6 +45,57 @@ tiny.api.on('done', ({ label, code }) => {
   busy(false);
   log(`— ${label} finished (exit ${code ?? '?'}) —`, code === 0 ? 'ok' : 'err');
 });
+
+// --- CLI status line + one-click setup --------------------------------------
+// The backend broadcasts 'cli' whenever the resolution changes (boot, after
+// setup, after a failed command); the page also resolves once on load.
+
+const isWin = /Win/.test(navigator.platform);
+
+function renderCli(s) {
+  if (!s) return;
+  const was = state.cli;
+  state.cli = s;
+  const el = $('cliStatus');
+  el.classList.remove('ok', 'bad');
+  if (!s.found) {
+    el.textContent = 'tinyjs: not found';
+    el.classList.add('bad');
+  } else {
+    el.textContent = 'tinyjs ' + (s.version || '?') +
+      (s.wrap ? '' : ' · wrap not in this release yet');
+    if (s.wrap) el.classList.add('ok');
+  }
+  // Found-ness flips rebuild the stage (setup card ⇄ preview).
+  if (!was || !!was.found !== !!s.found) renderPreview();
+}
+
+tiny.api.on('cli', renderCli);
+tiny.api.call('resolve').then(renderCli).catch(() => { });
+
+$('stage').addEventListener('click', async (e) => {
+  if (e.target && e.target.id === 'btnSetup') await runSetup();
+});
+
+async function runSetup() {
+  if (state.setupRunning) return;
+  state.setupRunning = true;
+  busy(true);
+  $('cliStatus').textContent = 'installing tinyjs…';
+  log('— installing tinyjs — the official installer (tinyjs.app), streamed below —');
+  try {
+    const r = await tiny.api.call('setup', {});
+    if (r && r.installed === false) {
+      log('installer didn’t complete — see the [setup] lines above.', 'err');
+    } else if (r && r.installed) {
+      log('tinyjs ready — ' + r.version + ' (' + r.bin + ')' + (r.wrap ? '' : ' · wrap pending upstream'), 'ok');
+    }
+  } catch (e) {
+    log(String(e.message ?? e), 'err');
+  }
+  state.setupRunning = false;
+  busy(false);
+}
 
 // --- shared: projects folder (remembered) + project icon -------------------
 
@@ -444,6 +497,19 @@ function mockPhone(p, host, badge) {
 function renderPreview() {
   const stage = $('stage');
   if (!stage) return;
+  // No CLI yet: the stage becomes the setup card — one big button is all a
+  // fresh install of the packaged app should ever ask for.
+  if (state.cli && !state.cli.found) {
+    const target = isWin ? '%LOCALAPPDATA%\\tinyjs' : '~/.tinyjs';
+    stage.innerHTML = `<div class="setup-card">
+      <h2>One thing left — the tinyjs runtime</h2>
+      <p>Everything the Studio does runs on the <code>tinyjs</code> CLI, and it isn't on this machine yet.</p>
+      <button id="btnSetup" class="primary big"${state.setupRunning ? ' disabled' : ''}>${state.setupRunning ? 'installing…' : 'Install tinyjs — one click'}</button>
+      <p class="hint">Runs the official tinyjs.app installer into <code>${target}</code>, streamed live in the
+      console below. The Studio drives it by absolute path — no PATH setup, nothing else touched.</p>
+    </div>`;
+    return;
+  }
   const wrap = state.source === 'wrap';
   let mk, chips = [];
   if (!wrap) {

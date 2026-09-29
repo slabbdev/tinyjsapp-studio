@@ -74,18 +74,28 @@ into a phone frame — you see the mobile layout before you wrap:
 
 ## Requirements
 
-- [tinyjs](https://tinyjs.app) installed (macOS; Windows and Linux in beta).
-- The **wrap** command is new: until it lands in a tinyjs release, point the
-  Studio at a tinyjsapp checkout that has it. It is found automatically when
-  the checkout sits next to this repo (`../tinyjsapp`), or set `TINYJS_BIN`.
+None, really. Open the app: it checks for the [tinyjs](https://tinyjs.app)
+CLI, and if it's missing, one click runs the official installer with every
+line streamed into the console (macOS / Linux / Windows; on Linux the
+installer explains the WebKitGTK runtime if it's missing). The Studio drives
+the installed CLI by absolute path — no PATH editing, nothing else touched.
+
+- **wrap** is newer than any tinyjs release: until it ships upstream, the
+  Wrap tab reports *not in this release yet* and Create / Run / Build carry
+  on. The status bar shows whether your tinyjs has wrap.
+- Developing on wrap? A tinyjsapp checkout is picked up automatically (see
+  below) — or set `TINYJS_BIN`.
 
 The Studio finds the CLI in this order:
 
 1. `TINYJS_BIN` environment variable
-2. a `tinyjsapp` source checkout next to this repo
-3. the installed CLI (`~/.tinyjs/tinyjs`, `%LOCALAPPDATA%\tinyjs\tinyjs.cmd`, or `PATH`)
+2. a `tinyjsapp` source checkout next to this repo (`../tinyjsapp`,
+   `../tinyjsapp-cli`)
+3. the installed CLI (`~/.tinyjs/tinyjs`, `%LOCALAPPDATA%\tinyjs\tinyjs.cmd`,
+   or `PATH`)
 
-The resolved binary and version show in the window's status bar.
+The resolved binary, version and wrap support show in the window's status
+bar.
 
 ## Run it
 

@@ -10,6 +10,7 @@ const enc = new TextEncoder();
 const dec = new TextDecoder();
 
 let binPath = null; // resolved once, cached
+let wrapSupport = null; // cached wrap probe: true/false (nulled when binPath is)
 let child = null; // the one long-running command (dev), if any
 let pendingIcon = null; // PNG bytes from the picker, applied to the next create/wrap
 
@@ -56,6 +57,40 @@ async function findBin() {
   return null;
 }
 
+// Does this tinyjs speak `wrap`? The command is newer than most installs —
+// and an unknown command still exits 0 (it prints the general help), so the
+// probe reads the output: wrap-capable builds answer with their own usage
+// line, `usage: tinyjs wrap <url> …`, which the general help never contains.
+async function probeWrap(bin) {
+  try {
+    const p = tjs.spawn(IS_WIN && bin.endsWith('.cmd')
+      ? ['cmd.exe', '/c', bin, 'wrap', '--help'] : [bin, 'wrap', '--help'],
+      { stdout: 'pipe', stderr: 'ignore' });
+    const out = await readAll(p.stdout);
+    await p.wait();
+    return /usage: tinyjs wrap/.test(out);
+  } catch {
+    return false;
+  }
+}
+
+// Everything the status line needs, in one call: found? which bin? version?
+// does wrap work? (wrapSupport is cached alongside binPath.)
+async function cliStatus() {
+  const bin = await findBin();
+  if (!bin) return { found: false };
+  let version = '';
+  try {
+    const p = tjs.spawn(IS_WIN && bin.endsWith('.cmd')
+      ? ['cmd.exe', '/c', bin, '--version'] : [bin, '--version'],
+      { stdout: 'pipe', stderr: 'ignore' });
+    version = (await readAll(p.stdout)).trim().split('\n')[0] ?? '';
+    await p.wait();
+  } catch { }
+  if (wrapSupport === null) wrapSupport = await probeWrap(bin);
+  return { found: true, bin, version, wrap: wrapSupport };
+}
+
 async function readAll(stream) {
   const dec = new TextDecoder();
   let out = '';
@@ -92,8 +127,9 @@ async function runStreaming(app, argv, { cwd, label } = {}) {
   if (child) throw new Error('a command is still running — stop it first');
   const bin = await findBin();
   if (!bin) {
-    throw new Error('tinyjs CLI not found — install it (tinyjs.app), clone ' +
-      'tinyjsapp next to this repo, or set TINYJS_BIN');
+    app.push('cli', { found: false });
+    throw new Error('tinyjs CLI not found — hit “Install tinyjs” (official ' +
+      'installer, one click), or set TINYJS_BIN');
   }
   const full = IS_WIN && bin.endsWith('.cmd')
     ? ['cmd.exe', '/c', bin, ...argv]
@@ -311,19 +347,49 @@ async function patchTitle(dir, title) {
 }
 
 export const api = {
-  // Status bar: which CLI the Studio will drive, and its version.
+  // Status line: which CLI the Studio will drive, its version, and whether
+  // it has the wrap command.
   async resolve() {
-    const bin = await findBin();
-    if (!bin) return { found: false };
-    let version = '';
-    try {
-      const p = tjs.spawn(IS_WIN && bin.endsWith('.cmd')
-        ? ['cmd.exe', '/c', bin, '--version'] : [bin, '--version'],
-        { stdout: 'pipe', stderr: 'ignore' });
-      version = (await readAll(p.stdout)).trim();
-      await p.wait();
-    } catch { }
-    return { found: true, bin, version };
+    return cliStatus();
+  },
+
+  // One-click setup for the packaged app: runs the OFFICIAL tinyjs installer
+  // (tinyjs.app) — the same `curl | sh` the site hands out — with every line
+  // streamed into the console. Nothing else is touched: the Studio drives the
+  // resulting binary by absolute path (~/.tinyjs/tinyjs on macOS/Linux,
+  // %LOCALAPPDATA%\tinyjs\tinyjs.cmd on Windows), so no PATH editing is
+  // needed for it to work.
+  async setup(params, app) {
+    if (child) throw new Error('a command is still running — stop it first');
+    const cmd = IS_WIN
+      ? ['powershell', '-NoProfile', '-Command', 'irm https://tinyjs.app/install.ps1 | iex']
+      : ['sh', '-c', 'curl -fsSL https://tinyjs.app/install | sh'];
+    app.push('log', '[setup] tinyjs CLI not found — running the official installer (tinyjs.app)');
+    app.push('log', '[setup] $ ' + cmd.join(' '));
+    const p = tjs.spawn(cmd, { stdout: 'pipe', stderr: 'pipe' });
+    child = p; // Stop can kill the installer like any other command
+    pump(app, p.stdout, 'setup');
+    pump(app, p.stderr, 'setup');
+    const w = await p.wait();
+    const code = typeof w === 'object' && w !== null ? (w.exit_status ?? -1) : w;
+    child = null;
+    app.push('done', { label: 'tinyjs install', code });
+    binPath = null;
+    wrapSupport = null;
+    const s = await cliStatus();
+    app.push('cli', s);
+    if (!s.found) {
+      app.push('log', '[setup] still not found — the installer output above says what missed (on Linux, usually the WebKitGTK runtime).');
+      return { installed: false };
+    }
+    app.push('log', `[setup] the Studio drives ${s.bin} directly — no PATH setup needed. For a terminal ` +
+      '`tinyjs`, re-run the installer in a shell so it can add itself to PATH.');
+    if (!s.wrap) {
+      app.push('log', '[setup] note: this tinyjs release does not have the wrap command yet — ' +
+        'Create / Run / Build are fully usable; Wrap activates as soon as your tinyjs has it ' +
+        '(or point TINYJS_BIN at a checkout, see README).');
+    }
+    return { installed: true, bin: s.bin, version: s.version, wrap: s.wrap };
   },
 
   // tinyjs new <name> — runs inside the chosen projects folder. An optional
@@ -579,8 +645,11 @@ export const api = {
   },
 };
 
-export function init(app) {
+export async function init(app) {
   app.push('ready', { version: tjs.version });
+  // First status broadcast — the page also calls resolve() itself, this is
+  // the belt to those braces.
+  try { app.push('cli', await cliStatus()); } catch { }
 }
 export function onWindowClosed() {
   // dev child dies with us — txiki tears the process group down.
