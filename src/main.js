@@ -355,7 +355,7 @@ export const api = {
     if (r.code === 0) {
       const root = parent + '/' + dir;
       if (title) await patchTitle(root, title);
-      await applyFinishing(root, { frameless, badge, external });
+      await applyFinishing(root, { frameless, badge, external, panel });
       if (pendingIcon) {
         // The user's pick beats whatever the site advertises.
         await writeIcon(root, pendingIcon);
