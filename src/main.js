@@ -155,21 +155,27 @@ async function writeIcon(dir, bytes) {
 // plus window buttons where the OS supplies none (Windows/Linux; macOS gets
 // its native traffic lights). document-start, every window.
 const DRAG_STRIP = `// Frameless starter: a drag strip along the top edge so the window moves,
-// plus window buttons (the native ones are hidden on every OS — see
-// windowControls in tinyjs.json). Delete this file and the "inject" key in
-// tinyjs.json once you have your own titlebar.
+// plus window buttons in the native traffic-light colors, left on macOS /
+// right elsewhere (the native set is hidden — windowControls in
+// tinyjs.json). Delete this file and the "inject" key in tinyjs.json once
+// you have your own titlebar.
 (() => {
+  const mac = /Mac/i.test(navigator.platform);
   const bar = document.createElement('div');
   bar.setAttribute('data-tiny-drag', '');
   bar.style.cssText =
     'position:fixed;top:0;left:0;right:0;height:26px;z-index:2147483647;' +
-    'display:flex;align-items:center;justify-content:flex-end;gap:8px;' +
-    'padding:0 10px';
-  for (const [label, verb] of [['–', 'minimize'], ['×', 'close']]) {
+    'display:flex;align-items:center;gap:8px;padding:0 10px;' +
+    'justify-content:' + (mac ? 'flex-start' : 'flex-end');
+  const btns = mac
+    ? [['\\u00d7', 'close', '#ff5f57'], ['\\u2013', 'minimize', '#febc2e'], ['\\u25cf', 'zoom', '#28c840']]
+    : [['\\u2013', 'minimize', '#febc2e'], ['\\u25cf', 'zoom', '#28c840'], ['\\u00d7', 'close', '#ff5f57']];
+  for (const [label, verb, color] of btns) {
     const b = document.createElement('button');
     b.textContent = label;
-    b.style.cssText = 'width:18px;height:18px;border:0;border-radius:50%;' +
-      'background:#2a3040;color:#e8eaf0;font:12px/1 sans-serif;cursor:pointer';
+    b.style.cssText = 'width:16px;height:16px;border:0;border-radius:50%;' +
+      'background:' + color + ';border:1px solid rgba(0,0,0,.18);' +
+      'font:9px/1 sans-serif;color:rgba(0,0,0,.55);cursor:pointer';
     b.addEventListener('click', () => window.tiny?.win[verb]());
     bar.appendChild(b);
   }

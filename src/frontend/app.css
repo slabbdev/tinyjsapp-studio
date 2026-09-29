@@ -47,7 +47,9 @@ header {
   box-shadow: 0 0 12px var(--accent);
   align-self: center;
 }
-h1 { font-size: 16px; font-weight: 600; margin: 0; letter-spacing: .2px; }
+h1 { font-size: 16px; font-weight: 600; margin: 0; letter-spacing: .2px; white-space: nowrap; }
+.brand { flex-shrink: 0; }
+@media (max-width: 1000px) { .tagline { display: none; } }
 .tagline { font-size: 11px; color: var(--muted); }
 
 .status {
@@ -61,7 +63,8 @@ h1 { font-size: 16px; font-weight: 600; margin: 0; letter-spacing: .2px; }
 .status.ok { color: var(--ok); }
 .status.bad { color: var(--err); }
 
-/* Window buttons — only shown where the OS supplies none (Windows/Linux).
+/* Window buttons — native traffic-light colors (read on any theme).
+   Left on macOS, right on Windows/Linux — each OS's muscle memory.
    Interactive children of [data-tiny-drag] are excluded from the drag
    region automatically. */
 .wincontrols {
@@ -74,13 +77,17 @@ h1 { font-size: 16px; font-weight: 600; margin: 0; letter-spacing: .2px; }
   height: 13px;
   padding: 0;
   border-radius: 50%;
-  border: 1px solid var(--line);
-  background: #2a3040;
+  border: 1px solid rgba(0, 0, 0, .18);
 }
-.wincontrols button:hover { filter: brightness(1.4); }
-#btnClose:hover { background: #f2726f; border-color: #f2726f; }
-#btnMin:hover { background: #f2c94c; border-color: #f2c94c; }
-#btnMax:hover { background: #4cc38a; border-color: #4cc38a; }
+.wincontrols button:hover { filter: brightness(1.12); }
+#btnMin { order: 0; background: #febc2e; border-color: #d89e24; }
+#btnMax { order: 1; background: #28c840; border-color: #1f9f31; }
+#btnClose { order: 2; background: #ff5f57; border-color: #e0443e; }
+/* macOS: controls sit left, close first — the native order */
+body.mac .wincontrols { order: -1; }
+body.mac #btnClose { order: 0; }
+body.mac #btnMin { order: 1; }
+body.mac #btnMax { order: 2; }
 
 /* --- shell: sidebar + main ------------------------------------------------ */
 
