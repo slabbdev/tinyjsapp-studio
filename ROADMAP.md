@@ -38,6 +38,11 @@ order in which we take it.
    answers `'external'`; everything else stays in-app.
 5. **Duplicate app**: clone any project card into a new name/id — the
    multi-account story ("wrap the same site twice, sign in twice"), two clicks.
+6. **Reset site data** action per project: dev webviews persist a
+   WKWebsiteDataStore keyed by app title (~/Library/WebKit/<title>), so stale
+   cookies survive re-wraps — a Google wrap kept serving its basic-HTML
+   fallback through a cookie preference even after the UA fix. One button to
+   wipe it; pairs with "sign out" for wrapped accounts.
 
 ## Phase 2 — the differentiators
 
