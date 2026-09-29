@@ -15,8 +15,47 @@ terminal. Built **with** tinyjs itself, which makes it the two things at once:
 Built by [@slabbdev](https://github.com/slabbdev). Not an official tinyjs
 project — just what its author considers the demo tinyjs deserved. 🙂
 
-![TinyJS App Studio — the Wrap a website tab, with a wrapped project in the
-projects strip](screenshot.png)
+![TinyJS App Studio — projects sidebar, live preview, config inspector](screenshot.png)
+
+## See it
+
+**Wrap any site.** Paste a URL, pick your window modes, watch the preview
+mirror every option — then generate a ~6 MB desktop app with its own icon,
+per-origin API gate, downloads and popup handling.
+
+![Wrapping a site — the dropdown panel preview](screenshots/02-wrap-panel-preview.png)
+
+**Menu-bar apps, live.** Menu-bar mode puts a tray icon in the system menu
+bar — click it and a dropdown panel anchored under the icon opens the site
+(tray click can also open a normal window):
+
+![The dropdown panel running over GitHub](screenshots/06-menubar-panel-live.png)
+
+![A wrapped GitHub profile in the panel](screenshots/08-dropdown-panel-live.png)
+
+**Real windows, really wrapped.** The generated apps are ordinary desktop
+windows — frameless or not, with whatever chrome you configured:
+
+![A wrapped GitHub profile in a frameless window](screenshots/07-wrapped-site-live.png)
+
+## The workspace
+
+**Everything in one place.** Projects sidebar (with a file tree per
+project), live preview stage, config inspector — sections Site, Window,
+Behavior.
+
+**The file offcanvas.** Click a file in a project's tree: images open as a
+preview, code files open in an editor with line numbers, code folding and
+syntax highlighting (CodeMirror 6, vendored) — edit and save right there.
+
+![The CodeMirror editor on index.html](screenshots/04-editor-codemirror.png)
+
+![Previewing a generated icon](screenshots/05-image-preview.png)
+
+**iPhone mode.** The iPhone user-agent preset also reshapes the preview
+into a phone frame — you see the mobile layout before you wrap:
+
+![iPhone UA — the preview becomes a phone](screenshots/03-iphone-preview.png)
 
 ## What it does
 
@@ -26,9 +65,12 @@ projects strip](screenshot.png)
   (native window, downloads, popup handling) whose pages get **no** access to
   your machine beyond their own window and dialogs — that gate is tinyjs'
   per-origin API policy, not a Studio promise.
-- **Run, build, stop, reveal** — drive `tinyjs dev` / `tinyjs build` on the
-  project you just made, with every line of the CLI streamed live into the
-  window.
+- **Open an existing project** — point the Studio at any tinyjs project
+  folder anywhere on disk; it joins the sidebar with all its actions, no
+  files moved.
+- **Run, build, stop, duplicate, reveal** — drive `tinyjs dev` / `tinyjs
+  build` on the selected project, with every line of the CLI streamed live
+  into the window.
 
 ## Requirements
 
