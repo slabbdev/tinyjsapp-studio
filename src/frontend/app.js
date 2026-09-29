@@ -408,7 +408,7 @@ function renderPreview() {
   stage.innerHTML = mk + `<div class="chips">${chips.map((c) => `<span class="chip">${esc(c)}</span>`).join('')}</div>`;
 }
 
-['wrapUrl', 'wrapName', 'wrapTitle', 'wrapUA',
+['wrapUrl', 'wrapName', 'wrapTitle', 'wrapUA', 'wrapDots',
   'wrapFrameless', 'wrapMenubar', 'wrapTray', 'wrapAlwaysTop',
   'appName', 'appTitle', 'template', 'createFrameless',
 ].forEach((id) => {
