@@ -247,7 +247,14 @@ body.mac #btnMax { order: 2; }
   border-radius: 8px;
   padding: 6px 8px;
 }
-.toolbar button { padding: 5px 10px; font-size: 12px; }
+.toolbar button {
+  padding: 5px 10px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.toolbar button svg { width: 12px; height: 12px; flex-shrink: 0; }
 .toolbar .path {
   min-width: 0;
   overflow: hidden;
