@@ -26,11 +26,16 @@ async function findBin() {
   const cwdParent = tjs.cwd.replace(/[\\/][^\\/]*$/, '');
   const sep = IS_WIN ? '\\' : '/';
   if (IS_WIN) {
+    cands.push(cwdParent + '\\tinyjsapp-cli\\tinyjs.cmd');
     cands.push(cwdParent + '\\tinyjsapp\\tinyjs.cmd');
     const local = tjs.env.LOCALAPPDATA ??
       (tjs.env.USERPROFILE ?? '') + '\\AppData\\Local';
     cands.push(local + '\\tinyjs\\tinyjs.cmd');
   } else {
+    // A dedicated worktree checkout (tinyjsapp-cli) wins over the sibling:
+    // the interactive checkout's branch changes under the user's feet, the
+    // worktree stays pinned to the integration branch (wrap + name fixes).
+    cands.push(cwdParent + '/tinyjsapp-cli/tinyjs');
     cands.push(cwdParent + '/tinyjsapp/tinyjs');
     cands.push((tjs.env.HOME ?? '') + '/.tinyjs/tinyjs');
   }
@@ -174,16 +179,58 @@ const DRAG_STRIP = `// Frameless starter: a drag strip along the top edge so the
 })();
 `;
 
-// Patch a generated project for frameless mode: chrome + the drag-strip
-// inject, written after the CLI has produced its tinyjs.json.
-async function applyFrameless(dir) {
+// The unread-badge watcher: mirrors a site element's count to the dock /
+// taskbar icon via app.badge (an API tinyjs already has). Missing element =
+// clear the badge; an element with no digits counts as 1 (dot-style).
+const badgeWatcherSource = (sel) => `
+// Unread badge: watch ${JSON.stringify(sel)} and mirror its count to the
+// dock / taskbar icon.
+(() => {
+  const SEL = ${JSON.stringify(sel)};
+  let last = null;
+  const tick = () => {
+    const el = document.querySelector(SEL);
+    let n = 0;
+    if (el) {
+      const m = (el.textContent || '').match(/\\d+/);
+      n = m ? +m[0] : 1;
+    }
+    if (n !== last) { last = n; window.tiny?.app.badge(n ? String(n) : ''); }
+  };
+  addEventListener('load', tick);
+  setInterval(tick, 2000);
+})();
+`;
+
+// Generated inject.js: drag strip (frameless) + badge watcher, composed into
+// one document-start script per project.
+function injectSource({ frameless, badge }) {
+  let src = '';
+  if (frameless) src += DRAG_STRIP;
+  if (badge) src += badgeWatcherSource(String(badge).trim());
+  return src.trim() || null;
+}
+
+// Patch a generated project after the CLI wrote its tinyjs.json: chrome
+// keys and the composed inject. A badge needs one exception to the wrapper
+// preset — app.badge for the wrapped origins, layered as {preset, enable};
+// without a badge the gate stays untouched.
+async function applyFinishing(dir, opts) {
   const root = dir.replace(/[\\/]+$/, '');
   const p = root + '/tinyjs.json';
   const cfg = JSON.parse(dec.decode(await tjs.readFile(p)));
-  cfg.chrome = { ...(cfg.chrome ?? {}), frame: false };
-  cfg.inject = 'inject.js';
+  if (opts.frameless) cfg.chrome = { ...(cfg.chrome ?? {}), frame: false };
+  const inj = injectSource(opts);
+  if (inj) {
+    cfg.inject = 'inject.js';
+    await tjs.writeFile(root + '/inject.js', enc.encode(inj));
+  }
+  if (opts.badge && cfg.api?.origins) {
+    for (const [origin, gate] of Object.entries(cfg.api.origins)) {
+      if (gate === 'wrapper') cfg.api.origins[origin] = { preset: 'wrapper', enable: ['app.badge'] };
+    }
+  }
   await tjs.writeFile(p, enc.encode(JSON.stringify(cfg, null, 2) + '\n'));
-  await tjs.writeFile(root + '/inject.js', enc.encode(DRAG_STRIP));
 }
 
 // The displayed name (menu bar, dock, titlebar) is tinyjs.json "title".
@@ -219,22 +266,23 @@ export const api = {
     if (r.code === 0) {
       const dir = parent + '/' + name;
       if (title && title !== name) await patchTitle(dir, title);
-      if (frameless) await applyFrameless(dir);
+      await applyFinishing(dir, { frameless });
       if (pendingIcon) await writeIcon(dir, pendingIcon);
     }
     return r;
   },
 
   // tinyjs wrap <url> <dir> — needs a tinyjs with the wrap command. An
-  // optional display title overrides the site's own <title> afterwards.
-  async wrap({ parent, url, dir, title, ua, frameless }, app) {
+  // optional display title overrides the site's own <title>; an optional
+  // badge selector mirrors the site's unread count onto the dock icon.
+  async wrap({ parent, url, dir, title, ua, frameless, badge }, app) {
     const argv = ['wrap', url, dir];
     if (ua) argv.push('--ua', ua);
     const r = await runStreaming(app, argv, { cwd: parent, label: 'wrap' });
     if (r.code === 0) {
       const root = parent + '/' + dir;
       if (title) await patchTitle(root, title);
-      if (frameless) await applyFrameless(root);
+      await applyFinishing(root, { frameless, badge });
       if (pendingIcon) {
         // The user's pick beats whatever the site advertises.
         await writeIcon(root, pendingIcon);

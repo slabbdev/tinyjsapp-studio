@@ -198,6 +198,7 @@ $('btnWrap').addEventListener('click', async () => {
     const { code } = await tiny.api.call('wrap', {
       parent: state.parent, url, dir,
       title: $('wrapTitle').value.trim() || undefined,
+      badge: $('wrapBadge').value.trim() || undefined,
       frameless: $('wrapFrameless').checked,
     });
     if (code === 0) {

@@ -90,11 +90,18 @@
         </div>
         <button id="btnWrap" class="primary">Wrap site</button>
       </div>
+      <div class="row">
+        <div class="field grow">
+          <label for="wrapBadge">Unread badge selector <span class="muted">(optional)</span></label>
+          <input id="wrapBadge" type="text" placeholder=".notification-count — mirrored to the dock icon every 2s" spellcheck="false">
+        </div>
+      </div>
       <p class="hint">Turns the site into a real desktop app: native window,
       downloads, popup handling — and the site gets <strong>no</strong> access
       to your machine beyond dialogs and its own window. Frameless injects a
-      drag strip so the window stays movable. Needs a tinyjs with the
-      <code>wrap</code> command (see README).</p>
+      drag strip so the window stays movable. A badge selector watches the
+      element holding the unread count and mirrors it onto the dock icon.
+      Needs a tinyjs with the <code>wrap</code> command (see README).</p>
     </section>
 
     <section id="projects" class="pane projects" hidden>
