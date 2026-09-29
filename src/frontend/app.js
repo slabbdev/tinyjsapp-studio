@@ -7,19 +7,6 @@ const $ = (id) => document.getElementById(id);
 const isMac = tiny.system.isMacOS();
 document.body.classList.toggle('mac', isMac);
 
-// Frameless preference for GENERATED projects, persisted. Frameless writes
-// chrome + a drag-strip inject into the project (see backend).
-function setFrameless(v) {
-  $('wrapFrameless').checked = v;
-  $('createFrameless').checked = v;
-  tiny.store.set('studio.frameless', v);
-}
-(async () => {
-  if ((await tiny.store.get('studio.frameless')) === false) setFrameless(false);
-})();
-$('wrapFrameless').addEventListener('change', () => setFrameless($('wrapFrameless').checked));
-$('createFrameless').addEventListener('change', () => setFrameless($('createFrameless').checked));
-
 const state = {
   parent: null,   // where new projects are created
   project: null,  // the project run/build/reveal act on
@@ -404,6 +391,7 @@ function renderPreview() {
     const panel = menubar && $('wrapTray').value === 'panel';
     const frameless = $('wrapFrameless').checked || panel;
     const dots = $('wrapDots').value !== 'none';
+    tiny.log(`pv: dots=${dots} sel="${$('wrapDots').value}" fr=${frameless}`);
     const ua = $('wrapUA').value;
     const uaSel = $('wrapUA').selectedOptions[0]?.textContent.split('—')[0].trim();
     if (frameless) chips.push(frameless && !dots ? 'frameless · no buttons' : 'frameless');
