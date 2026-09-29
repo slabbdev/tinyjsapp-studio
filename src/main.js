@@ -150,6 +150,24 @@ async function writeIcon(dir, bytes) {
   await tjs.writeFile(dir.replace(/[\\/]+$/, '') + '/icon.png', bytes);
 }
 
+// UA presets. The stock engine UA lacks the "Version/x Safari/x" token, so
+// UA-sniffing sites (Google at least) serve the wrapped app a degraded page
+// — 'browser' picks a first-class citizen of the current engine: Safari on
+// mac/Linux (WebKit), Edge on Windows (Chromium/WebView2).
+const SAFARI_MAC = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' +
+  'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15';
+const EDGE_WIN = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ' +
+  'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0';
+const SAFARI_IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) ' +
+  'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1';
+
+function resolveUA(preset, custom) {
+  if (custom) return String(custom);
+  if (preset === 'iphone') return SAFARI_IPHONE;
+  if (preset === 'browser') return IS_WIN ? EDGE_WIN : SAFARI_MAC;
+  return null; // 'engine' — stock UA, no override
+}
+
 // A frameless window with no titlebar of its own can't be moved — so
 // "frameless" generates this starter inject: a drag strip along the top edge,
 // plus window buttons where the OS supplies none (Windows/Linux; macOS gets
@@ -295,10 +313,12 @@ export const api = {
 
   // tinyjs wrap <url> <dir> — needs a tinyjs with the wrap command. An
   // optional display title overrides the site's own <title>; an optional
-  // badge selector mirrors the site's unread count onto the dock icon.
-  async wrap({ parent, url, dir, title, ua, frameless, badge }, app) {
+  // badge selector mirrors the site's unread count onto the dock icon; the
+  // UA preset ('browser' | 'iphone' | 'engine') counters UA-sniffing.
+  async wrap({ parent, url, dir, title, ua, uaPreset, frameless, badge }, app) {
     const argv = ['wrap', url, dir];
-    if (ua) argv.push('--ua', ua);
+    const resolved = resolveUA(uaPreset, ua);
+    if (resolved) argv.push('--ua', resolved);
     const r = await runStreaming(app, argv, { cwd: parent, label: 'wrap' });
     if (r.code === 0) {
       const root = parent + '/' + dir;

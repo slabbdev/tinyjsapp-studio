@@ -96,6 +96,14 @@
           <button id="btnWrap" class="primary">Wrap site</button>
         </div>
         <div class="row">
+          <div class="field">
+            <label for="wrapUA">User agent</label>
+            <select id="wrapUA">
+              <option value="browser" selected>browser — anti-sniffing default</option>
+              <option value="engine">engine — WKWebView/WebView2 stock</option>
+              <option value="iphone">iPhone — mobile site</option>
+            </select>
+          </div>
           <div class="field grow">
             <label for="wrapBadge">Unread badge selector <span class="muted">(optional)</span></label>
             <input id="wrapBadge" type="text" placeholder=".notification-count — mirrored to the dock icon every 2s" spellcheck="false">
@@ -106,6 +114,8 @@
         to your machine beyond dialogs and its own window. Frameless injects a
         drag strip so the window stays movable. A badge selector watches the
         element holding the unread count and mirrors it onto the dock icon.
+        The stock engine UA lacks the Safari token — UA-sniffing sites
+        (Google…) serve it a degraded page, hence the browser preset.
         Needs a tinyjs with the <code>wrap</code> command (see README).</p>
       </section>
 
