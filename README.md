@@ -1,5 +1,7 @@
 # TinyJS App Studio
 
+![TinyJS App Studio](assets/banner.png)
+
 A tiny desktop companion for [tinyjs](https://github.com/tarwin/tinyjsapp) —
 create tinyjs apps and turn websites into desktop apps, without opening a
 terminal. Built **with** tinyjs itself, which makes it the two things at once:
@@ -107,6 +109,12 @@ the WebKit (or WebView2) your OS already has.
   and the `wrap` plumbing this Studio drives. Docs at [tinyjs.app](https://tinyjs.app).
 - The wrap command itself is being contributed upstream; this repo consumes
   it, it does not reimplement it.
+
+## Support
+
+If the Studio saves you a click, a coffee is appreciated ☕
+
+<a href="https://buymeacoffee.com/samlabbe"><img src="assets/bmc-qr.png" alt="Buy Me a Coffee — buymeacoffee.com/samlabbe" width="240"></a>
 
 ## License
 

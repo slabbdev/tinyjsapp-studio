@@ -1,0 +1,127 @@
+// Generates the TinyJS App Studio README banner (1280x640).
+// Usage: osascript -l JavaScript gen-banner.jxa <out.png>
+ObjC.import('Cocoa');
+
+function run(argv) {
+  const out = argv[0];
+  const W = 1280, H = 640;
+
+  const img = $.NSImage.alloc.initWithSize($.NSMakeSize(W, H));
+  img.lockFocus;
+
+  // backdrop: deep vertical gradient
+  const bg = $.NSGradient.alloc.initWithStartingColorEndingColor(
+    $.NSColor.colorWithCalibratedRedGreenBlueAlpha(0.13, 0.15, 0.19, 1),
+    $.NSColor.colorWithCalibratedRedGreenBlueAlpha(0.07, 0.08, 0.10, 1));
+  bg.drawInRectAngle($.NSMakeRect(0, 0, W, H), -90);
+
+  // soft accent glows: concentric ellipses, decreasing alpha (poor man's blur)
+  const glow = (x, y, w, h, r, g, b) => {
+    for (let i = 6; i >= 1; i--) {
+      const k = i * 0.028;
+      const pad = (6 - i) * 46;
+      const p = $.NSBezierPath.bezierPathWithOvalInRect(
+        $.NSMakeRect(x - pad, y - pad, w + 2 * pad, h + 2 * pad));
+      $.NSColor.colorWithCalibratedRedGreenBlueAlpha(r, g, b, k).setFill;
+      p.fill;
+    }
+  };
+  glow(-260, H - 60, 900, 520, 0.18, 0.45, 0.85);
+  glow(W - 420, -160, 760, 420, 0.45, 0.36, 0.85);
+
+  // window mock (right side)
+  const wx = 730, wy = 90, ww = 460, wh = 470;
+  const shadow = $.NSShadow.alloc.init;
+  shadow.shadowBlurRadius = 42;
+  shadow.shadowOffset = $.NSMakeSize(0, 18);
+  shadow.set;
+  const winOuter = $.NSBezierPath.bezierPathWithRoundedRectXRadiusYRadius(
+    $.NSMakeRect(wx - 10, wy - 10, ww + 20, wh + 20), 22, 22);
+  $.NSColor.colorWithCalibratedRedGreenBlueAlpha(0, 0, 0, 0.55).setFill;
+  winOuter.fill;
+  shadow.shadowBlurRadius = 0;
+  shadow.set;
+
+  const win = $.NSBezierPath.bezierPathWithRoundedRectXRadiusYRadius(
+    $.NSMakeRect(wx, wy, ww, wh), 14, 14);
+  $.NSColor.colorWithCalibratedRedGreenBlueAlpha(1, 1, 1, 1).setFill;
+  win.fill;
+  win.addClip;
+
+  // titlebar
+  $.NSColor.colorWithCalibratedRedGreenBlueAlpha(0.91, 0.915, 0.93, 1).setFill;
+  $.NSRectFill($.NSMakeRect(wx, wy + wh - 40, ww, 40));
+  const dotCols = [[1, 0.37, 0.34], [0.99, 0.74, 0.18], [0.16, 0.78, 0.25]];
+  for (let i = 0; i < 3; i++) {
+    const p = $.NSBezierPath.bezierPathWithOvalInRect(
+      $.NSMakeRect(wx + 16 + i * 22, wy + wh - 28, 12, 12));
+    $.NSColor.colorWithCalibratedRedGreenBlueAlpha(dotCols[i][0], dotCols[i][1], dotCols[i][2], 1).setFill;
+    p.fill;
+  }
+  // sidebar
+  $.NSColor.colorWithCalibratedRedGreenBlueAlpha(0.95, 0.955, 0.965, 1).setFill;
+  $.NSRectFill($.NSMakeRect(wx, wy, 104, wh - 40));
+  // skeleton lines
+  $.NSColor.colorWithCalibratedRedGreenBlueAlpha(0.88, 0.89, 0.91, 1).setFill;
+  $.NSRectFill($.NSMakeRect(wx + 120, wy + wh - 92, ww - 150, 10));
+  $.NSRectFill($.NSMakeRect(wx + 120, wy + wh - 132, ww - 210, 10));
+  $.NSColor.colorWithCalibratedRedGreenBlueAlpha(0.14, 0.39, 0.61, 1).setFill;
+  $.NSBezierPath.bezierPathWithRoundedRectXRadiusYRadius(
+    $.NSMakeRect(wx + 120, wy + wh - 208, ww - 220, 38), 8, 8).fill;
+  $.NSColor.colorWithCalibratedRedGreenBlueAlpha(0.90, 0.91, 0.93, 1).setFill;
+  $.NSBezierPath.bezierPathWithRoundedRectXRadiusYRadius(
+    $.NSMakeRect(wx + 16, wy + 40, 72, wh - 100), 8, 8).fill;
+  $.NSColor.colorWithCalibratedRedGreenBlueAlpha(0.88, 0.89, 0.91, 1).setFill;
+  $.NSRectFill($.NSMakeRect(wx + 26, wy + wh - 170, 52, 8));
+  $.NSRectFill($.NSMakeRect(wx + 26, wy + wh - 190, 52, 8));
+
+  // left column text (Cocoa origin is bottom-left — H minus top offsets)
+  const title = $.NSString.stringWithString('TinyJS App Studio');
+  const tAttrs = $.NSMutableDictionary.alloc.init;
+  tAttrs.setObjectForKey($.NSFont.boldSystemFontOfSize(74), $.NSFontAttributeName);
+  tAttrs.setObjectForKey($.NSColor.colorWithCalibratedRedGreenBlueAlpha(0.95, 0.96, 0.97, 1), $.NSForegroundColorAttributeName);
+  title.drawAtPointWithAttributes($.NSMakePoint(90, H - 330), tAttrs);
+
+  const tag = $.NSString.stringWithString('create & wrap, no terminal');
+  const gAttrs = $.NSMutableDictionary.alloc.init;
+  gAttrs.setObjectForKey($.NSFont.systemFontOfSize(30), $.NSFontAttributeName);
+  gAttrs.setObjectForKey($.NSColor.colorWithCalibratedRedGreenBlueAlpha(0.56, 0.59, 0.65, 1), $.NSForegroundColorAttributeName);
+  tag.drawAtPointWithAttributes($.NSMakePoint(94, H - 392), gAttrs);
+
+  const sub = $.NSString.stringWithString('a ~6 MB desktop companion for tinyjs — macOS · Windows · Linux');
+  const sAttrs = $.NSMutableDictionary.alloc.init;
+  sAttrs.setObjectForKey($.NSFont.systemFontOfSize(23), $.NSFontAttributeName);
+  sAttrs.setObjectForKey($.NSColor.colorWithCalibratedRedGreenBlueAlpha(0.43, 0.46, 0.52, 1), $.NSForegroundColorAttributeName);
+  sub.drawAtPointWithAttributes($.NSMakePoint(94, H - 440), sAttrs);
+
+  // chips
+  const chips = ['wrap any site', 'menu-bar panels', '~6 MB apps'];
+  let cx = 94;
+  for (const c of chips) {
+    const s = $.NSString.stringWithString(c);
+    const a = $.NSMutableDictionary.alloc.init;
+    a.setObjectForKey($.NSFont.systemFontOfSize(21), $.NSFontAttributeName);
+    a.setObjectForKey($.NSColor.colorWithCalibratedRedGreenBlueAlpha(0.78, 0.81, 0.87, 1), $.NSForegroundColorAttributeName);
+    const w = s.sizeWithAttributes(a).width + 44;
+    const p = $.NSBezierPath.bezierPathWithRoundedRectXRadiusYRadius(
+      $.NSMakeRect(cx, H - 530, w, 46), 22, 22);
+    $.NSColor.colorWithCalibratedRedGreenBlueAlpha(0.15, 0.17, 0.21, 1).setFill;
+    p.fill;
+    s.drawAtPointWithAttributes($.NSMakePoint(cx + 22, H - 518), a);
+    cx += w + 16;
+  }
+
+  const credit = $.NSString.stringWithString('slabbdev · built with tinyjs — tinyjs.app');
+  const cAttrs = $.NSMutableDictionary.alloc.init;
+  cAttrs.setObjectForKey($.NSFont.systemFontOfSize(20), $.NSFontAttributeName);
+  cAttrs.setObjectForKey($.NSColor.colorWithCalibratedRedGreenBlueAlpha(0.34, 0.37, 0.43, 1), $.NSForegroundColorAttributeName);
+  credit.drawAtPointWithAttributes($.NSMakePoint(94, 48), cAttrs);
+
+  img.unlockFocus;
+
+  const tiff = img.TIFFRepresentation;
+  const rep = $.NSBitmapImageRep.imageRepWithData(tiff);
+  const png = rep.representationUsingTypeProperties($.NSBitmapImageFileTypePNG, $.NSDictionary.dictionary);
+  png.writeToFileAtomically(out, true);
+  return 'wrote ' + out + ' (' + rep.pixelsWide + 'x' + rep.pixelsHigh + ')';
+}
