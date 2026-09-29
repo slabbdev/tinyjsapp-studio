@@ -60,6 +60,12 @@ order in which we take it.
 12. **Per-window data stores** → true multi-account inside one app
     (Wavebox-style workspaces).
 13. **Site notifications → native toasts** bridge.
+14. **Window-chrome verbs must survive redirects**: the frameless drag-strip's
+    `win.close/minimize/zoom` are subject to the per-origin gate — when a
+    wrapped site redirects to a stranger origin (google.fr →
+    consent.google.com), the app's own window controls die. Window chrome is
+    app machinery, not site capability: those verbs belong in API_ALWAYS
+    (next to `client.hello`). Measured live on a google.fr wrap.
 
 ## The pitch, one line
 
