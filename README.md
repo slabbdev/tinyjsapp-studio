@@ -27,8 +27,6 @@ per-origin API gate, downloads and popup handling.
 bar — click it and a dropdown panel anchored under the icon opens the site
 (tray click can also open a normal window):
 
-![The dropdown panel running over GitHub](screenshots/06-menubar-panel-live.png)
-
 ![A wrapped GitHub profile in the panel](screenshots/08-dropdown-panel-live.png)
 
 **Real windows, really wrapped.** The generated apps are ordinary desktop
