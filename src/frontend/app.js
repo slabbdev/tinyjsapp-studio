@@ -139,6 +139,8 @@ function fillWrapForm(p) {
   $('wrapMenubar').checked = p.studio?.menubar ?? p.activation === 'accessory';
   $('wrapTray').hidden = !$('wrapMenubar').checked;
   $('wrapTray').value = p.studio?.panel ? 'panel' : 'window';
+  $('wrapDots').value = p.studio?.dots === false ? 'none' : 'dots';
+  $('dotsField').hidden = !p.frameless || (p.studio?.panel ?? false);
   $('wrapAlwaysTop').checked = p.studio?.top ?? false;
   renderPreview();
 }
@@ -256,24 +258,38 @@ function setProject(dir) {
 // one click, never "update, then run".
 function wrapParams(dir) {
   const menubar = $('wrapMenubar').checked;
+  const panel = menubar && $('wrapTray').value === 'panel';
+  const frameless = $('wrapFrameless').checked;
   return {
     parent: state.parent,
     url: $('wrapUrl').value.trim(),
     dir,
     title: $('wrapTitle').value.trim() || undefined,
     uaPreset: $('wrapUA').value,
-    frameless: $('wrapFrameless').checked,
+    frameless,
+    dots: frameless && !panel ? $('wrapDots').value !== 'none' : undefined,
     menubar,
-    panel: menubar && $('wrapTray').value === 'panel',
+    panel,
     alwaysTop: $('wrapAlwaysTop').checked,
   };
 }
 
-// Menu-bar mode unfolds the tray-click choice; a dropdown panel implies
-// frameless (a panel with a titlebar is nonsense).
-$('wrapMenubar').addEventListener('change', () => {
-  $('wrapTray').hidden = !$('wrapMenubar').checked;
+// Sub-choices unfold with their parents: tray click under menu bar, window
+// buttons under frameless (except panel mode — panels have no buttons).
+function syncSubChoices() {
+  const menubar = $('wrapMenubar').checked;
+  const panel = menubar && $('wrapTray').value === 'panel';
+  const frameless = $('wrapFrameless').checked;
+  $('wrapTray').hidden = !menubar;
+  $('dotsField').hidden = !frameless || panel;
+  if (panel) $('wrapFrameless').checked = true;
+}
+$('wrapMenubar').addEventListener('change', syncSubChoices);
+$('wrapTray').addEventListener('change', () => {
+  syncSubChoices();
+  if ($('wrapTray').value === 'panel') $('wrapFrameless').checked = true;
 });
+$('wrapFrameless').addEventListener('change', syncSubChoices);
 $('wrapTray').addEventListener('change', () => {
   if ($('wrapTray').value === 'panel') $('wrapFrameless').checked = true;
 });
@@ -351,9 +367,9 @@ function mockDots() {
   return '<span class="mk-dots"><i class="d r"></i><i class="d y"></i><i class="d g"></i></span>';
 }
 
-function mockWindow({ title, frameless, p, host, badge, floating }) {
+function mockWindow({ title, frameless, dots = true, p, host, badge, floating }) {
   const bar = frameless
-    ? `<div class="mk-bar slim">${mockDots()}<span class="mk-btitle">${esc(title)}</span></div>`
+    ? `<div class="mk-bar slim">${dots ? mockDots() : ''}<span class="mk-btitle">${esc(title)}</span></div>`
     : `<div class="mk-bar">${mockDots()}<span class="mk-btitle">${esc(title)}</span></div>`;
   return `<div class="mk-win${floating ? ' floating' : ''}">${bar}${mockSite(p, host, badge)}</div>`;
 }
@@ -387,9 +403,10 @@ function renderPreview() {
     const menubar = $('wrapMenubar').checked;
     const panel = menubar && $('wrapTray').value === 'panel';
     const frameless = $('wrapFrameless').checked || panel;
+    const dots = $('wrapDots').value !== 'none';
     const ua = $('wrapUA').value;
     const uaSel = $('wrapUA').selectedOptions[0]?.textContent.split('—')[0].trim();
-    if (frameless) chips.push('frameless');
+    if (frameless) chips.push(frameless && !dots ? 'frameless · no buttons' : 'frameless');
     if (menubar) chips.push(panel ? 'menu bar · panel' : 'menu bar · window');
     if ($('wrapAlwaysTop').checked) chips.push('always on top');
     chips.push('UA: ' + uaSel);
@@ -397,7 +414,7 @@ function renderPreview() {
     if (ua === 'iphone') mk = mockPhone(p, host);
     else if (panel) mk = mockPanel(p, host);
     else mk = mockWindow({
-      title, frameless, p, host,
+      title, frameless, dots: frameless && dots, p, host,
       floating: $('wrapAlwaysTop').checked,
     });
   }

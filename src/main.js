@@ -187,12 +187,11 @@ function resolveUA(preset, custom) {
 // "frameless" generates this starter inject: a drag strip along the top edge,
 // plus window buttons where the OS supplies none (Windows/Linux; macOS gets
 // its native traffic lights). document-start, every window.
-const DRAG_STRIP = `// Frameless starter: a drag strip along the top edge so the window moves,
-// plus bare window dots in the native traffic-light colors — same geometry
-// as the Studio header, left on macOS / right elsewhere (the native set is
-// hidden via windowControls in tinyjs.json). Delete this file and the
-// "inject" key in tinyjs.json once you have your own titlebar.
-(() => {
+// Frameless starter inject: a drag strip along the top edge so the window
+// moves, optionally with bare window dots in the native traffic-light
+// colors (withDots). The native set is hidden via windowControls in
+// tinyjs.json. Delete the file + "inject" key once you have your own bar.
+const dragStripSource = (withDots) => `(() => {
   const mac = /Mac/i.test(navigator.platform);
   const mount = () => {
     const style = document.createElement('style');
@@ -203,14 +202,14 @@ const DRAG_STRIP = `// Frameless starter: a drag strip along the top edge so the
       '.tjs-strip{position:fixed;top:0;left:0;right:0;height:40px;z-index:2147483647;' +
       'display:flex;align-items:center;gap:8px;padding:0 16px;' +
       'justify-content:' + (mac ? 'flex-start' : 'flex-end') + '}' +
-      '.tjs-dot{width:13px;height:13px;padding:0;border-radius:50%;' +
+      (withDots ? '.tjs-dot{width:13px;height:13px;padding:0;border-radius:50%;' +
       'border:1px solid rgba(0,0,0,.15);cursor:pointer}' +
-      '.tjs-dot:hover{filter:brightness(1.12)}';
+      '.tjs-dot:hover{filter:brightness(1.12)}' : '');
     document.head.appendChild(style);
     const bar = document.createElement('div');
     bar.className = 'tjs-strip';
     bar.setAttribute('data-tiny-drag', '');
-    const btns = mac
+    ${withDots ? `const btns = mac
       ? [['Close', 'close', '#ff5f57'], ['Minimize', 'minimize', '#febc2e'], ['Zoom', 'zoom', '#28c840']]
       : [['Minimize', 'minimize', '#febc2e'], ['Zoom', 'zoom', '#28c840'], ['Close', 'close', '#ff5f57']];
     for (const [label, verb, color] of btns) {
@@ -220,14 +219,13 @@ const DRAG_STRIP = `// Frameless starter: a drag strip along the top edge so the
       b.style.background = color;
       b.addEventListener('click', () => window.tiny?.win[verb]());
       bar.appendChild(b);
-    }
+    }` : '// bare strip: drag only, no window buttons'}
     document.body.appendChild(bar);
   };
   // document-start: <head> doesn't exist yet in WebKit — wait for it.
   if (document.head && document.body) mount();
   else document.addEventListener('DOMContentLoaded', mount, { once: true });
-})();
-`;
+})();`;
 
 // The unread-badge watcher: mirrors a site element's count to the dock /
 // taskbar icon via app.badge (an API tinyjs already has). Missing element =
@@ -254,9 +252,9 @@ const badgeWatcherSource = (sel) => `
 
 // Generated inject.js: drag strip (frameless) + badge watcher, composed into
 // one document-start script per project.
-function injectSource({ frameless, badge }) {
+function injectSource({ frameless, badge, dots = true }) {
   let src = '';
-  if (frameless) src += DRAG_STRIP;
+  if (frameless) src += dragStripSource(dots !== false);
   if (badge) src += badgeWatcherSource(String(badge).trim());
   return src.trim() || null;
 }
@@ -287,6 +285,7 @@ async function applyFinishing(dir, opts) {
   }
   cfg.studio = {
     ...(cfg.studio ?? {}),
+    dots: opts.frameless ? opts.dots !== false : null,
     badge: opts.badge ?? null,
     external: opts.external
       ? String(opts.external).split(',').map((s) => s.trim()).filter(Boolean)
@@ -343,7 +342,7 @@ export const api = {
   // optional display title overrides the site's own <title>; an optional
   // badge selector mirrors the site's unread count onto the dock icon; the
   // UA preset ('browser' | 'iphone' | 'engine') counters UA-sniffing.
-  async wrap({ parent, url, dir, title, ua, uaPreset, frameless, badge, menubar, alwaysTop, external, panel }, app) {
+  async wrap({ parent, url, dir, title, ua, uaPreset, frameless, badge, menubar, alwaysTop, external, panel, dots }, app) {
     const argv = ['wrap', url, dir, '--force']; // the Studio edits in place
     const resolved = resolveUA(uaPreset, ua);
     if (resolved) argv.push('--ua', resolved);
@@ -355,7 +354,7 @@ export const api = {
     if (r.code === 0) {
       const root = parent + '/' + dir;
       if (title) await patchTitle(root, title);
-      await applyFinishing(root, { frameless, badge, external, panel });
+      await applyFinishing(root, { frameless, badge, external, panel, dots });
       if (pendingIcon) {
         // The user's pick beats whatever the site advertises.
         await writeIcon(root, pendingIcon);
