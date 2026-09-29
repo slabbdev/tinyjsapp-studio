@@ -315,10 +315,12 @@ export const api = {
   // optional display title overrides the site's own <title>; an optional
   // badge selector mirrors the site's unread count onto the dock icon; the
   // UA preset ('browser' | 'iphone' | 'engine') counters UA-sniffing.
-  async wrap({ parent, url, dir, title, ua, uaPreset, frameless, badge }, app) {
+  async wrap({ parent, url, dir, title, ua, uaPreset, frameless, badge, menubar, alwaysTop }, app) {
     const argv = ['wrap', url, dir];
     const resolved = resolveUA(uaPreset, ua);
     if (resolved) argv.push('--ua', resolved);
+    if (menubar) argv.push('--menubar');
+    if (alwaysTop) argv.push('--top');
     const r = await runStreaming(app, argv, { cwd: parent, label: 'wrap' });
     if (r.code === 0) {
       const root = parent + '/' + dir;

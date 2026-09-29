@@ -206,6 +206,8 @@ $('btnWrap').addEventListener('click', async () => {
       uaPreset: $('wrapUA').value,
       badge: $('wrapBadge').value.trim() || undefined,
       frameless: $('wrapFrameless').checked,
+      menubar: $('wrapMenubar').checked,
+      alwaysTop: $('wrapAlwaysTop').checked,
     });
     if (code === 0) {
       setProject(state.parent + '/' + dir);
