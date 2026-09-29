@@ -264,7 +264,10 @@ body.mac #btnMax { order: 2; }
   font: 10.5px/1.4 var(--mono);
   padding: 4px 9px;
   border-radius: 6px;
-  white-space: nowrap;
+  white-space: normal;
+  width: max-content;
+  max-width: 230px;
+  text-align: center;
   box-shadow: 0 6px 18px rgba(0, 0, 0, .45);
   opacity: 0;
   pointer-events: none;
@@ -335,7 +338,7 @@ body.mac #btnMax { order: 2; }
 .ins-icon-txt .muted { font: 10px var(--mono); }
 .ins-icon button { padding: 6px 10px; font-size: 12px; }
 
-.tabs { display: flex; gap: 6px; align-items: flex-end; }
+.tabs { display: flex; gap: 6px; align-items: flex-end; padding: 0 10px; }
 .tab {
   padding: 7px 14px;
   background: transparent;
