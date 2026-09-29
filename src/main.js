@@ -404,38 +404,52 @@ export const api = {
 
   // Every tinyjs project in the chosen folder: readDir + tinyjs.json parse,
   // icon inlined as a dataURL (the page can't read arbitrary file:// paths).
-  async listProjects({ parent }) {
+  async listProjects({ parent, app }) {
     const projects = [];
+    const pushProject = async (abs, dir, cfg) => {
+      let icon = null;
+      try {
+        const bytes = new Uint8Array(await tjs.readFile(abs + '/icon.png'));
+        if (bytes.length <= 512 * 1024) icon = 'data:image/png;base64,' + toBase64(bytes);
+      } catch { }
+      // uaPreset reverse-maps the stored UA back to the form's select so
+      // a project click restores the exact wrap configuration.
+      const ua = cfg.userAgent ?? null;
+      projects.push({
+        dir,
+        abs,
+        title: cfg.title ?? cfg.name ?? dir,
+        url: cfg.url ?? null,
+        icon,
+        uaPreset: ua === null ? 'engine'
+          : ua === SAFARI_MAC || ua === EDGE_WIN ? 'browser'
+          : ua === SAFARI_IPHONE ? 'iphone' : 'browser',
+        frameless: cfg.chrome?.frame === false,
+        studio: cfg.studio ?? {},
+        activation: cfg.activation ?? null,
+        external: abs !== parent + '/' + dir,
+      });
+    };
     try {
       const iter = await tjs.readDir(parent);
       for await (const e of iter) {
         if (!e.isDirectory || e.name.startsWith('.')) continue;
         try {
           const cfg = JSON.parse(dec.decode(await tjs.readFile(parent + '/' + e.name + '/tinyjs.json')));
-          let icon = null;
-          try {
-            const bytes = new Uint8Array(await tjs.readFile(parent + '/' + e.name + '/icon.png'));
-            if (bytes.length <= 512 * 1024) icon = 'data:image/png;base64,' + toBase64(bytes);
-          } catch { }
-          // uaPreset reverse-maps the stored UA back to the form's select so
-          // a project click restores the exact wrap configuration.
-          const ua = cfg.userAgent ?? null;
-          projects.push({
-            dir: e.name,
-            title: cfg.title ?? cfg.name ?? e.name,
-            url: cfg.url ?? null,
-            icon,
-            uaPreset: ua === null ? 'engine'
-              : ua === SAFARI_MAC || ua === EDGE_WIN ? 'browser'
-              : ua === SAFARI_IPHONE ? 'iphone' : 'browser',
-            frameless: cfg.chrome?.frame === false,
-            studio: cfg.studio ?? {},
-            activation: cfg.activation ?? null,
-          });
+          await pushProject(parent + '/' + e.name, e.name, cfg);
         } catch { /* a folder without tinyjs.json isn't a project */ }
       }
     } catch { /* folder gone since it was picked */ }
-    projects.sort((a, b) => a.dir.localeCompare(b.dir));
+    // Projects opened from anywhere on disk (persisted "Open…" picks).
+    const externals = ((await app.store.get('studio.external')) ?? [])
+      .filter((d) => !parent || !d.startsWith(parent + '/'));
+    for (const abs of externals) {
+      try {
+        const cfg = JSON.parse(dec.decode(await tjs.readFile(abs + '/tinyjs.json')));
+        await pushProject(abs, abs.split(/[\\/]/).pop(), cfg);
+      } catch { /* the folder vanished — drop it silently */ }
+    }
+    projects.sort((a, b) => a.title.localeCompare(b.title));
     return { projects };
   },
 
@@ -461,6 +475,31 @@ export const api = {
     if (cfg.id) cfg.id = cfg.id + n;
     await tjs.writeFile(cfgPath, enc.encode(JSON.stringify(cfg, null, 2) + '\n'));
     return { dir: target, title: cfg.title };
+  },
+
+  // Open an EXISTING tinyjs project anywhere on disk: validated, then kept
+  // in the store so it lists alongside the folder's projects (no files are
+  // moved or copied).
+  async addExisting({ dir }) {
+    const root = String(dir ?? '').replace(/[\\/]+$/, '');
+    const p = root + '/tinyjs.json';
+    let cfg;
+    try {
+      cfg = JSON.parse(dec.decode(await tjs.readFile(p)));
+    } catch {
+      throw new Error('not a tinyjs project — no tinyjs.json in that folder');
+    }
+    const list = ((await app.store.get('studio.external')) ?? [])
+      .filter((d) => d !== root && d !== root + '/' && d !== root + '\\');
+    list.push(root);
+    await app.store.set('studio.external', list);
+    return { dir: root, title: cfg.title ?? cfg.name ?? root.split('/').pop() };
+  },
+
+  async removeExternal({ dir }) {
+    const list = ((await app.store.get('studio.external')) ?? []).filter((d) => d !== dir);
+    await app.store.set('studio.external', list);
+    return true;
   },
 
   // Mini file explorer: recursive listing of a project (artifacts skipped,

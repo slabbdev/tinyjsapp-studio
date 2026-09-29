@@ -65,6 +65,19 @@ $('pickFolder').addEventListener('click', async () => {
   loadProjects();
 });
 
+// Open an existing tinyjs project from anywhere on disk.
+$('btnOpenExisting').addEventListener('click', async () => {
+  const dir = await tiny.dialog.pickFolder();
+  if (!dir) return;
+  try {
+    const r = await tiny.api.call('addExisting', { dir });
+    log('opened ' + r.title + ' — ' + r.dir, 'ok');
+    loadProjects();
+  } catch (e) {
+    log(String(e.message ?? e), 'err');
+  }
+});
+
 // --- your projects: every tinyjs project in the chosen folder --------------
 
 async function loadProjects() {
@@ -94,21 +107,32 @@ async function loadProjects() {
     item.querySelector('.s').textContent = p.url
       ? new URL(p.url).hostname : 'local app';
     item.addEventListener('click', () => {
-      const sel = state.parent + '/' + p.dir;
-      if (state.project === sel && state.expanded === p.dir) state.expanded = null;
-      else state.expanded = p.dir;
+      const sel = p.abs;
+      if (state.project === sel && state.expanded === p.abs) state.expanded = null;
+      else state.expanded = p.abs;
       setProject(sel);
       if (p.url) fillWrapForm(p);
       loadProjects();
     });
+    if (p.external) {
+      const x = document.createElement('span');
+      x.className = 'unpin';
+      x.textContent = '×';
+      x.dataset.tip = 'Remove from the list (files stay)';
+      x.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await tiny.api.call('removeExternal', { dir: p.abs });
+        if (state.project === p.abs) { state.project = null; $('project').hidden = true; }
+        loadProjects();
+      });
+      item.appendChild(x);
+    }
     list.appendChild(item);
 
     // expanded project: its file tree under the card — click opens with the
     // OS default app (the Studio stays read-only by design).
-    if (state.expanded === p.dir) {
-      const { files } = await tiny.api.call('listFiles', {
-        dir: state.parent + '/' + p.dir,
-      });
+    if (state.expanded === p.abs) {
+      const { files } = await tiny.api.call('listFiles', { dir: p.abs });
       for (const f of files) {
         const row = document.createElement('button');
         row.className = 'file-item';
@@ -120,7 +144,7 @@ async function loadProjects() {
         row.querySelector('.fn').textContent = f.rel.split('/').pop();
         row.addEventListener('click', () => {
           const ext = f.rel.split('.').pop().toLowerCase();
-          const path = `${state.parent}/${p.dir}/${f.rel}`;
+          const path = `${p.abs}/${f.rel}`;
           if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico', 'js', 'ts', 'html', 'css', 'json', 'md', 'txt'].includes(ext)) {
             openFileCanvas(path);
           } else {

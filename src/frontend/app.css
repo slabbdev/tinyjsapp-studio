@@ -173,6 +173,16 @@ body.mac #btnMax { order: 2; }
 }
 .proj-item .txt { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 
+.proj-item .unpin {
+  margin-left: auto;
+  font: 13px/1 var(--mono);
+  color: var(--muted);
+  padding: 0 2px;
+  border-radius: 4px;
+  -webkit-app-region: no-drag;
+}
+.proj-item .unpin:hover { color: var(--err); background: var(--bg); }
+
 /* mini file explorer: tree under the expanded project */
 .file-item {
   display: flex;
