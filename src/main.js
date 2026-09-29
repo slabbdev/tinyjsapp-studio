@@ -161,33 +161,38 @@ const DRAG_STRIP = `// Frameless starter: a drag strip along the top edge so the
 // the "inject" key in tinyjs.json once you have your own titlebar.
 (() => {
   const mac = /Mac/i.test(navigator.platform);
-  const style = document.createElement('style');
-  style.textContent =
-    '.tjs-strip{position:fixed;top:0;left:0;right:0;height:28px;z-index:2147483647;' +
-    'display:flex;align-items:center;gap:8px;padding:0 10px;' +
-    'justify-content:' + (mac ? 'flex-start' : 'flex-end') + ';' +
-    '-webkit-app-region:no-drag}' +
-    '.tjs-dot{display:flex;align-items:center;justify-content:center;' +
-    'width:13px;height:13px;padding:0;border-radius:50%;' +
-    'border:1px solid rgba(0,0,0,.15);font:700 9px/1 sans-serif;' +
-    'color:transparent;cursor:pointer}' +
-    '.tjs-dot:hover{color:rgba(0,0,0,.55)}';
-  document.head.appendChild(style);
-  const bar = document.createElement('div');
-  bar.className = 'tjs-strip';
-  bar.setAttribute('data-tiny-drag', '');
-  const btns = mac
-    ? [['\\u2715', 'close', '#ff5f57'], ['\\u2013', 'minimize', '#febc2e'], ['\\u25cf', 'zoom', '#28c840']]
-    : [['\\u2013', 'minimize', '#febc2e'], ['\\u25cf', 'zoom', '#28c840'], ['\\u2715', 'close', '#ff5f57']];
-  for (const [label, verb, color] of btns) {
-    const b = document.createElement('button');
-    b.className = 'tjs-dot';
-    b.textContent = label;
-    b.style.background = color;
-    b.addEventListener('click', () => window.tiny?.win[verb]());
-    bar.appendChild(b);
-  }
-  document.documentElement.appendChild(bar);
+  const mount = () => {
+    const style = document.createElement('style');
+    style.textContent =
+      '.tjs-strip{position:fixed;top:0;left:0;right:0;height:28px;z-index:2147483647;' +
+      'display:flex;align-items:center;gap:8px;padding:0 10px;' +
+      'justify-content:' + (mac ? 'flex-start' : 'flex-end') + '}' +
+      '.tjs-dot{display:flex;align-items:center;justify-content:center;' +
+      'width:13px;height:13px;padding:0;border-radius:50%;' +
+      'border:1px solid rgba(0,0,0,.15);font:700 9px/1 sans-serif;' +
+      'color:transparent;cursor:pointer}' +
+      '.tjs-dot:hover{color:rgba(0,0,0,.55)}';
+    document.head.appendChild(style);
+    const bar = document.createElement('div');
+    bar.className = 'tjs-strip';
+    bar.setAttribute('data-tiny-drag', '');
+    const btns = mac
+      ? [['\\u2715', 'close', '#ff5f57'], ['\\u2013', 'minimize', '#febc2e'], ['\\u25cf', 'zoom', '#28c840']]
+      : [['\\u2013', 'minimize', '#febc2e'], ['\\u25cf', 'zoom', '#28c840'], ['\\u2715', 'close', '#ff5f57']];
+    for (const [label, verb, color] of btns) {
+      const b = document.createElement('button');
+      b.className = 'tjs-dot';
+      b.textContent = label;
+      b.style.background = color;
+      b.addEventListener('click', () => window.tiny?.win[verb]());
+      bar.appendChild(b);
+    }
+    document.body.appendChild(bar);
+    window.tiny?.log('tjs strip mounted, dots=' + bar.children.length);
+  };
+  // document-start: <head> doesn't exist yet in WebKit — wait for it.
+  if (document.head && document.body) mount();
+  else document.addEventListener('DOMContentLoaded', mount, { once: true });
 })();
 `;
 
