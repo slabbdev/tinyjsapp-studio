@@ -355,8 +355,10 @@ function mockDots() {
 }
 
 function mockWindow({ title, frameless, dots = true, p, host, badge, floating }) {
+  // bare mode (no dots): the site icon sits left of the title, like a
+  // real custom titlebar — no dead space.
   const bar = frameless
-    ? `<div class="mk-bar slim">${dots ? mockDots() : ''}<span class="mk-btitle">${esc(title)}</span></div>`
+    ? `<div class="mk-bar slim">${dots ? mockDots() : mockIcon(p, 15)}<span class="mk-btitle">${esc(title)}</span></div>`
     : `<div class="mk-bar">${mockDots()}<span class="mk-btitle">${esc(title)}</span></div>`;
   return `<div class="mk-win${floating ? ' floating' : ''}">${bar}${mockSite(p, host, badge)}</div>`;
 }
