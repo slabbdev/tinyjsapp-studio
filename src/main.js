@@ -298,11 +298,31 @@ function injectSource({ frameless, badge, dots = true }) {
   return src.trim() || null;
 }
 
+// The Studio's own per-project record (dots/badge/external form state).
+// Lives in .tinyjs-studio.json next to tinyjs.json — the manifest carries
+// only what the runtime or CLI reads (#20 review, point 4). Projects made
+// before the sidecar keep their record in tinyjs.json "studio": read it,
+// move it to the sidecar, and clean the manifest on the way out.
+export async function readStudioRecord(abs, cfg) {
+  try { return JSON.parse(dec.decode(await tjs.readFile(abs + '/.tinyjs-studio.json'))); }
+  catch { }
+  const legacy = cfg?.studio;
+  if (!legacy || typeof legacy !== 'object') return {};
+  try {
+    await tjs.writeFile(abs + '/.tinyjs-studio.json', enc.encode(JSON.stringify(legacy, null, 2) + '\n'));
+    if ('studio' in cfg) {
+      delete cfg.studio;
+      await tjs.writeFile(abs + '/tinyjs.json', enc.encode(JSON.stringify(cfg, null, 2) + '\n'));
+    }
+  } catch { /* read-only project — keep serving the legacy record */ }
+  return legacy;
+}
+
 // Patch a generated project after the CLI wrote its tinyjs.json: chrome
-// keys, the composed inject, the edit-flow record (badge/external for form
-// restore), and the badge's one gate exception. The CLI already persisted
-// menubar/top in cfg.studio.
-async function applyFinishing(dir, opts) {
+// keys, the composed inject, the edit-flow record (dots/badge/external for
+// form restore — the Studio's own .tinyjs-studio.json sidecar, not the
+// manifest), and the badge's one gate exception.
+export async function applyFinishing(dir, opts) {
   const root = dir.replace(/[\\/]+$/, '');
   const p = root + '/tinyjs.json';
   const cfg = JSON.parse(dec.decode(await tjs.readFile(p)));
@@ -322,14 +342,23 @@ async function applyFinishing(dir, opts) {
     delete cfg.inject;
     await tjs.remove(root + '/inject.js').catch(() => { });
   }
-  cfg.studio = {
-    ...(cfg.studio ?? {}),
+  delete cfg.studio; // legacy key from an older Studio — the sidecar owns it now
+  let prev = {};
+  try { prev = JSON.parse(dec.decode(await tjs.readFile(root + '/.tinyjs-studio.json'))); } catch { }
+  const record = {
+    ...prev,
+    // menubar/top/panel are recorded here too: the CLI stopped persisting
+    // them (tinyjs#20 review, same round) and the form restore reads them.
+    menubar: !!opts.menubar,
+    top: !!opts.top,
+    panel: !!opts.panel,
     dots: opts.frameless ? opts.dots !== false : null,
     badge: opts.badge ?? null,
     external: opts.external
       ? String(opts.external).split(',').map((s) => s.trim()).filter(Boolean)
       : null,
   };
+  await tjs.writeFile(root + '/.tinyjs-studio.json', enc.encode(JSON.stringify(record, null, 2) + '\n'));
   if (opts.badge && cfg.api?.origins) {
     for (const [origin, gate] of Object.entries(cfg.api.origins)) {
       if (gate === 'wrapper') cfg.api.origins[origin] = { preset: 'wrapper', enable: ['app.badge'] };
@@ -423,7 +452,7 @@ export const api = {
     if (r.code === 0) {
       const root = parent + '/' + dir;
       if (title) await patchTitle(root, title);
-      await applyFinishing(root, { frameless, badge, external, panel, dots });
+      await applyFinishing(root, { frameless, badge, external, panel, dots, menubar, top: alwaysTop });
       if (pendingIcon) {
         // The user's pick beats whatever the site advertises.
         await writeIcon(root, pendingIcon);
@@ -502,7 +531,7 @@ export const api = {
           : ua === SAFARI_MAC || ua === EDGE_WIN ? 'browser'
           : ua === SAFARI_IPHONE ? 'iphone' : 'browser',
         frameless: cfg.chrome?.frame === false,
-        studio: cfg.studio ?? {},
+        studio: await readStudioRecord(abs, cfg),
         activation: cfg.activation ?? null,
         external: abs !== parent + '/' + dir,
       });
