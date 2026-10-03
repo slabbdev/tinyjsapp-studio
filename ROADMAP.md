@@ -27,6 +27,74 @@ order in which we take it.
 | True workspaces (multi-account in one window) | Wavebox, WebCatalog | **needs upstream**: per-window data stores |
 | Curated catalog of ready-made apps | WebCatalog, Ferdium recipes, Nativefier CATALOG.md | Studio-level: recipes are just JSON |
 | Reader mode / backend superpowers | nobody | tinyjs backend (`tiny.fetch` no-CORS, SQLite) — unique |
+| Publishes a threat model / security audit trail | Tauri, Electron | tinyjs now has the audit trail (#26/#29/#18, v0.45–0.46); Phase S adds the wrapper-level threat model — **no other site-wrapper has one** |
+
+## Phase S — security: the question belongs to tinyjs; the Studio is how we surface, prove, and link it
+
+Users are asking "is it secure like Tauri?" in comments. That question is about
+tinyjs, the runtime — and tinyjs just answered it in code, not adjectives:
+v0.44.0 shipped `wrap`; v0.45.0 shipped per-app WebView2 profiles (storage
+isolation), env-var scrubbing in built apps, txiki.js hash pins, and a
+`tiny.store` prototype-pollution fix; v0.46.0 is marked **security** — page
+`win.open` confinement (no `file:`/`javascript:`/`../` walks), per-user
+single-instance pipes with ACLs, a session-token handshake on the app↔window
+pipe, and subframe token gating (a hostile iframe can no longer borrow the top
+frame's gate). Behind it sits an audit trail: #26 (supply chain), #29
+(Windows hardening), #18 (frame-blind origin attribution) closed with
+per-platform `docs(verify)` commits; #30 is open as the next batch;
+#19/#33 track Windows artifact signing.
+
+The Studio's role is threefold — and it's what links the two projects, as
+always: **surface** the runtime's guarantees as visible UI, **prove** them
+from the outside, and **link** Studio ↔ tinyjs in every artifact (security
+page → changelog and issues; Studio proposed upstream as the reference GUI).
+No one else in the site-wrapper space publishes a threat model at all — being
+the first *is* the #1 positioning.
+
+S1. **Threat model, public** (`docs/THREAT-MODEL.md` + `SECURITY.md`). The
+   wrapped site is the adversary. Document each tinyjs mechanism and credit
+   it: deny-by-default per-origin capability gate (0.38+); RPC over a private
+   Unix socket / named pipe with a session-token handshake (0.46); `win.open`
+   confinement (0.46); subframe token gating (0.46); per-app storage
+   isolation (per-app WKWebsiteDataStore on macOS, per-app WebView2 profile
+   on Windows since 0.45); built apps drop inherited `TINYJS_*`/`WEBVIEW2_*`
+   env (0.45); codesigned, notarization-ready builds; self-updater verifying
+   sha256 + code signature with rollback. Then say the limits plainly: #30 is
+   open (tiny-media proxy auth, navigation-scheme bypass, `curl | sh`
+   updater), Windows artifacts aren't signed yet (#19/#33), and the backend
+   process has full user access — no OS app sandbox. Honesty is the product.
+   Plus `SECURITY.md` with GitHub private vulnerability reporting.
+S2. **Adversarial suite** (`test/adversarial/`): each attack class maps to a
+   shipped fix, and we prove it holds *from outside the project* — a hostile
+   iframe posting a hand-built message to borrow the top frame's gate (#18/
+   0.46), `win.open` file:// escapes (#29/0.46), cross-app cookie/localStorage
+   sharing on Windows (#29/0.45), bridge calls from a stranger origin,
+   `tiny.store` `__proto__` pollution (0.45), env-based injection into built
+   apps (0.45), postMessage spoofing of the drag strip, redirect chains that
+   re-key the gate. Run it on CI; publish a pass/fail table where each row
+   links the tinyjs issue and release that fixed it.
+S3. **Fix our own known hole before publishing**: the frameless drag-strip's
+   window verbs die on cross-origin redirect (google.fr → consent.google.com)
+   — a UX bug with a security reading; window chrome belongs in API_ALWAYS
+   (Phase 3 #14). Open upstream items (#30, #19) go in the threat model's
+   known-limitations section, not in a footnote.
+S4. **Security page on the landing site**: "What can a wrapped site do?"
+   Nothing you didn't allow — the gate, the handshake, the isolation, in user
+   language, every claim a link into tinyjs's changelog or issues. Cross-link
+   both projects: propose the Studio to Tarwin as the reference GUI for
+   tinyjsapp-examples, and contribute the adversarial suite upstream as
+   tinyjs integration tests.
+S5. **Permission matrix in the Studio** (wrap form + config inspector):
+   every bridge API × origin, visible and editable before generate — the gate
+   made a feature, Chrome's site-permissions UX. After generate, a one-glance
+   trust summary the user can screenshot ("this app exposes: `app.badge` →
+   x.com only; window verbs → wrapper origins; external links → none").
+S6. **The proof post** (blog #2): "Is it secure like Tauri? We attacked the
+   runtime we build on and published the results." Leads with Tarwin's
+   audit trail (#26/#29/#18 → v0.45–0.46), then our outside-in suite results;
+   links the threat model, the security page, and the upstream issues. This
+   is the artifact that answers the comments for good — and it credits the
+   runtime instead of claiming the credit for the wrapper.
 
 ## Phase 1 — parity killers (Studio-level only, no upstream work)
 
@@ -58,7 +126,7 @@ order in which we take it.
 10. **Benchmarks** in the README: measured size/RAM/startup vs a WebCatalog
     app and a PWA install. The number is the marketing.
 
-## Phase 3 — upstream levers (issues/PRs to tinyjsapp, like #20/#21)
+## Phase 3 — upstream levers (issues/PRs to tinyjsapp — #20 wrap and #21 shipped in v0.44; the security audit trail is #26/#29/#30)
 
 11. **Content blocker** (WKContentRuleList / WebView2 rule lists) → real
     adblock toggle. Issue first; biggest single feature Unite has that we lack.
@@ -77,4 +145,5 @@ order in which we take it.
 > WebCatalog ships you a Chromium per app. Unite charges $15 and stays on one
 > Mac. Wavebox is a subscription to use a browser. TinyJS App Studio turns any
 > site into a 6 MB, permission-gated, auto-updating desktop app — free,
-> cross-platform, scriptable.
+> cross-platform, scriptable — and the only one that publishes its threat
+> model and attack results.

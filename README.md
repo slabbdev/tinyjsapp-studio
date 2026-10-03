@@ -80,9 +80,9 @@ line streamed into the console (macOS / Linux / Windows; on Linux the
 installer explains the WebKitGTK runtime if it's missing). The Studio drives
 the installed CLI by absolute path — no PATH editing, nothing else touched.
 
-- **wrap** is newer than any tinyjs release: until it ships upstream, the
-  Wrap tab reports *not in this release yet* and Create / Run / Build carry
-  on. The status bar shows whether your tinyjs has wrap.
+- **wrap** shipped upstream in tinyjs v0.44.0. Older installs still report
+  *not in this release yet* in the Wrap tab — Create / Run / Build carry on,
+  and the status bar shows whether your tinyjs has wrap.
 - Developing on wrap? A tinyjsapp checkout is picked up automatically (see
   below) — or set `TINYJS_BIN`.
 
