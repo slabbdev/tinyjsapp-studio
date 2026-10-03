@@ -128,6 +128,7 @@ you chose.
 | Windows release/update artifacts unsigned — no provenance anchor | [#19](https://github.com/tarwin/tinyjsapp/issues/19), fix in flight [#33](https://github.com/tarwin/tinyjsapp/pull/33) |
 | Media permission auto-grant in bundled apps (origin-consent question) | [#24](https://github.com/tarwin/tinyjsapp/issues/24) — open |
 | Windows storage isolation shipped 0.45 without migration — wrapped sites ask to re-login once after upgrading | [#29](https://github.com/tarwin/tinyjsapp/issues/29) — by-design tradeoff, pairs with the Studio's "Reset site data" action |
+| DOM popups (config `"popups": "window"`) execute `javascript:` URLs in the page's **own** origin — opener-inherit, so no privilege gain (same wrapper gate); but the 0.46 `win.open` URL screening covers the bridge path, not DOM popups. Meanwhile `file:` popup URLs are re-keyed onto the wrapped origin (observed live: `file:///etc/passwd` → `http://<origin>/etc/passwd`, 404). | Surfaced by the adversarial suite (T5b) — observation, to confirm upstream |
 
 A published threat model with open items beats a marketing page with none —
 that is why this table exists. Each row flips to "fixed in X" as releases

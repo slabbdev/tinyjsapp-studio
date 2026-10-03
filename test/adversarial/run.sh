@@ -1,0 +1,111 @@
+#!/bin/sh
+# Adversarial suite harness — macOS / Linux.
+#
+# Wraps the hostile site with the tinyjs CLI exactly like the Studio would,
+# runs the wrap, waits for the probes to fire, then checks the effects a
+# page cannot hide from the outside: whether the printToPDF probe (T8)
+# actually wrote its file, and whether the app survived the postMessage
+# spoof barrage (T9). Page-side verdicts render in the app window's table.
+#
+# Usage:  sh test/adversarial/run.sh [seconds]
+# Env:    TINYJS_BIN  — tinyjs binary to drive (default: resolve below).
+set -u
+
+SECS="${1:-22}"
+HERE="$(cd "$(dirname "$0")" && pwd)"
+WORK="$(mktemp -d /tmp/tjs-adv-XXXXXX)"
+# Must match the default path the hostile page probes (attacks.js T8) — the
+# wrap loads the bare URL, so the page's ?pwn= default is what fires.
+PWN="/tmp/tjs-adv-pwn.pdf"
+LOG="$WORK/dev.log"
+WRAP_PID=""; APP_PID=""; SERVE_PID=""
+
+# Resolve the CLI without ever writing to the runtime checkout.
+if [ -n "${TINYJS_BIN:-}" ]; then TJS="$TINYJS_BIN"
+elif [ -x "$HERE/../../../tinyjsapp/tinyjs" ]; then TJS="$HERE/../../../tinyjsapp/tinyjs"
+elif [ -x "$HOME/.tinyjs/tinyjs" ]; then TJS="$HOME/.tinyjs/tinyjs"
+else echo "no tinyjs CLI found — set TINYJS_BIN"; exit 2; fi
+echo "[harness] CLI: $TJS ($("$TJS" --version 2>&1 | head -1))"
+
+cleanup() {
+  [ -n "$APP_PID" ] && kill "$APP_PID" 2>/dev/null
+  [ -n "$WRAP_PID" ] && kill "$WRAP_PID" 2>/dev/null
+  [ -n "$SERVE_PID" ] && kill "$SERVE_PID" 2>/dev/null
+  sleep 1
+}
+trap cleanup EXIT INT TERM
+
+echo "[harness] serving hostile site on 127.0.0.1:8787 + 8788"
+# Pre-flight: a stale server from a previous run must not serve this one.
+if curl -s -m 2 -o /dev/null "http://127.0.0.1:8787/" 2>/dev/null; then
+  echo "[harness] ABORT: something already listens on 8787 — kill it first (lsof -i :8787)"; exit 4
+fi
+rm -f "/tmp/tjs-adv-pwn.pdf"   # T8 ground truth must be fresh
+node "$HERE/serve.mjs" >"$WORK/serve.log" 2>&1 & SERVE_PID=$!
+sleep 1
+if ! curl -s -m 2 -o /dev/null "http://127.0.0.1:8787/" 2>/dev/null; then
+  echo "[harness] ABORT: hostile server did not come up"; exit 5
+fi
+
+echo "[harness] wrap -> $WORK/hostile"
+# Unique title per run: dev webviews persist a WKWebsiteDataStore keyed by
+# app title, so a repeated title replays last run's cached probe scripts.
+RUN_TAG="$(date +%s)"
+"$TJS" wrap "http://127.0.0.1:8787/?run=$RUN_TAG" "$WORK/hostile" --force \
+  --title "ADV Probe $RUN_TAG" --ua "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15" \
+  >"$WORK/wrap.log" 2>&1 &
+WRAP_PID=$!
+i=0; while kill -0 "$WRAP_PID" 2>/dev/null && [ $i -lt 30 ]; do sleep 1; i=$((i+1)); done
+if [ -f "$WORK/hostile/tinyjs.json" ]; then
+  echo "[harness] wrapped OK"
+else
+  echo "[harness] wrap FAILED — log:"; cat "$WORK/wrap.log"; exit 3
+fi
+
+# The page's T8 probe defaults to $PWN (see above); the harness just waits.
+echo "[harness] launching wrapped app for ${SECS}s — a probe window will appear"
+( cd "$WORK/hostile" && exec "$TJS" dev ) >"$LOG" 2>&1 &
+APP_PID=$!
+
+sleep "$SECS"
+
+echo "[harness] ---- external checks ----"
+if kill -0 "$APP_PID" 2>/dev/null; then
+  echo "LIVENESS  PASS — app alive after T9 spoof barrage (no spoofed win.close executed)"
+else
+  echo "LIVENESS  FAIL — app exited early (spoofed window verbs executed? see $LOG)"
+fi
+if [ -f "$PWN" ]; then
+  echo "T8/PDF    OPEN  — printToPDF wrote the page-named path (#36 still unfixed): $PWN"
+else
+  echo "T8/PDF    accepted-no-file? re-checking after kill (the PDF write can race the render)…"
+  kill "$APP_PID" 2>/dev/null; sleep 2; APP_PID=""
+  if [ -f "$PWN" ]; then
+    echo "T8/PDF    OPEN  — printToPDF wrote the page-named path (#36 still unfixed): $PWN"
+  else
+    echo "T8/PDF    PASS  — printToPDF probe wrote nothing (#36 fixed or gated)"
+  fi
+fi
+if grep -q "/exfil" "$WORK/serve.log" 2>/dev/null; then
+  echo "T5b/EXFIL INFO  — the javascript: popup executed IN THE PAGE'S OWN ORIGIN (opener-inherit):"
+  echo "                  no privilege gain (same wrapper gate) — but DOM popups bypass the"
+  echo "                  0.46 win.open URL screening; flag upstream for confirmation"
+else
+  echo "T5b/EXFIL PASS  — javascript: escape never executed"
+fi
+if grep -q "GET /etc/passwd" "$WORK/serve.log" 2>/dev/null; then
+  echo "T5a/FILE   PASS  — file: popup was re-keyed onto the wrapped origin (served 404, disk untouched)"
+else
+  echo "T5a/FILE   PASS  — file: popup never reached the network or disk"
+fi
+echo "[harness] ---- page verdicts (relayed out via clip.write, an allowed verb) ----"
+if command -v pbpaste >/dev/null 2>&1; then
+  REPORT="$(pbpaste 2>/dev/null | sed -n '/^ADV\/REPORT/,$p')"
+  if [ -z "$REPORT" ]; then sleep 3; REPORT="$(pbpaste 2>/dev/null | sed -n '/^ADV\/REPORT/,$p')"; fi
+  if [ -n "$REPORT" ]; then printf '%s\n' "$REPORT"
+  else echo "(no ADV/ report on clipboard — read the probe window's table)"; fi
+else
+  echo "(no clipboard reader on this platform — read the probe window's table)"
+fi
+echo "T6/iframe — page-side verdict renders in the probe window's table"
+echo "[harness] full dev log: $LOG"

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>stranger origin iframe</title></head>
+<body>
+<script>
+'use strict';
+// Stranger-origin probe: this frame is served from port 8788, which is NOT
+// in the wrap's api.origins. Expected: either the bridge is not injected
+// here at all, or every call is denied per-origin — and this frame must not
+// be gated as the top frame's origin (tinyjs 0.46, #18).
+async function probe() {
+  const hasBridge = typeof window.tiny === 'object' && window.tiny && window.tiny.api;
+  const call = async (method, params) => {
+    try {
+      const r = await window.tiny.api.call(method, params);
+      return { ok: true, detail: 'resolved:' + JSON.stringify(r).slice(0, 60) };
+    } catch (e) { return { ok: false, detail: (e && e.message) || String(e) }; }
+  };
+  const calls = {
+    'win.close': await call('win.close'),
+    'fs.read': await call('fs.read', { path: '/etc/hosts' }),
+    'store.get': await call('store.get', { key: 'x' }),
+    'app.badge': await call('app.badge', { count: 1 }),
+  };
+  const leaks = Object.entries(calls).filter(([, c]) => c.ok);
+  let verdict;
+  if (!hasBridge) {
+    verdict = 'ALL BLOCKED — bridge not injected into stranger-origin subframe (window.tiny undefined)';
+  } else if (leaks.length === 0) {
+    verdict = 'ALL BLOCKED — bridge present, every call rejected';
+  } else {
+    verdict = 'LEAK — executed: ' + leaks.map(([m, c]) => `${m}: ${c.detail}`).join(' | ');
+  }
+  try { parent.postMessage(verdict, '*'); } catch (e) { /* nothing */ }
+  document.title = verdict;
+}
+window.addEventListener('load', () => setTimeout(probe, 300));
+</script>
+</body>
+</html>

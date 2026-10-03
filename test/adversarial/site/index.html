@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ADV — hostile probe page</title>
+<style>
+  body { background:#111; color:#ddd; font:13px/1.5 ui-monospace,Menlo,monospace; margin:2rem; }
+  h1 { font-size:1rem; color:#f66; }
+  table { border-collapse:collapse; width:100%; }
+  td, th { border:1px solid #333; padding:.35rem .5rem; text-align:left; vertical-align:top; }
+  th { color:#8af; }
+  .PASS { color:#7d7; } .FAIL { color:#f66; } .OPEN { color:#fa4; }
+  small { color:#888; }
+</style>
+</head>
+<body>
+<h1>hostile probe page — attacks run automatically on load</h1>
+<p><small>Every probe below is a known webview-escape class. Expected results and
+issue links: <code>test/adversarial/README.md</code>. Console mirror prefixed
+<code>ADV/</code>.</small></p>
+<table id="t">
+  <tr><th>id</th><th>attack</th><th>expected</th><th>observed</th><th>verdict</th></tr>
+</table>
+<script src="attacks.js"></script>
+</body>
+</html>
