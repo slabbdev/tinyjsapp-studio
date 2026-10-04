@@ -98,13 +98,13 @@ S6. **The proof post** (blog #2): "Is it secure like Tauri? We attacked the
 
 ## Phase 1 — parity killers (Studio-level only, no upstream work)
 
-1. **Badge**: "unread selector" field per wrap → generated inject watches it,
+1. **Badge** — mechanism ✅ (finishing pass + gate exception), UI pending: "unread selector" field per wrap → generated inject watches it,
    pushes `app.badge(n)` / clears it.
-2. **Window options** row: menu-bar app (`accessory` + tray), always-on-top.
-3. **UA presets**: desktop / mobile / iPhone dropdown (writes `userAgent`).
-4. **External links**: optional comma-separated domain list → `onNavigate`
+2. ✅ **Window options** row: menu-bar app (`accessory` + tray), always-on-top, panel mode.
+3. ✅ **UA presets**: desktop / mobile / iPhone dropdown (writes `userAgent`).
+4. **External links** — mechanism ✅, UI pending: optional comma-separated domain list → `onNavigate`
    answers `'external'`; everything else stays in-app.
-5. **Duplicate app**: clone any project card into a new name/id — the
+5. ✅ **Duplicate app**: clone any project card into a new name/id — the
    multi-account story ("wrap the same site twice, sign in twice"), two clicks.
 6. **Reset site data** action per project: dev webviews persist a
    WKWebsiteDataStore keyed by app title (~/Library/WebKit/<title>), so stale
@@ -147,3 +147,33 @@ S6. **The proof post** (blog #2): "Is it secure like Tauri? We attacked the
 > site into a 6 MB, permission-gated, auto-updating desktop app — free,
 > cross-platform, scriptable — and the only one that publishes its threat
 > model and attack results.
+
+## Phase D — the path to #1: distribution, migration, trust
+
+The product plays are above; being #1 also takes being *found* and *chosen*.
+
+D1. **Nativefier migration** — Nativefier is archived (since 2023) and its
+   README says so: those users are captive and shopping. A `MIGRATING.md`
+   (flag-for-flag mapping) + a "import a Nativefier app" path in the Studio
+   turns their exit into our funnel.
+D2. **Ecosystem anchor** — the Studio listed in tarwin/tinyjsapp-examples
+   and the tinyjs docs as *the* GUI (with Tarwin's go); tinyjs's README
+   links back. Inception story: the GUI built with tinyjs.
+D3. **Search & listings** — own the queries "nativefier alternative",
+   "webcatalog alternative", "wrap website desktop app": enrich the
+   saashub/libhunt/alternativeto pages that already index the DEV.to post,
+   ship the benchmarks (Phase 2 #10) as the comparison artifact.
+D4. **Signed, notarized Studio releases** — today ad-hoc signed (release.yml):
+   Gatekeeper warnings undercut a security-first story. Notarize the
+   Studio's own builds; Windows signing follows #33 upstream.
+D5. **CI for the proof** — run the adversarial suite on a macOS runner per
+   release; the security page shows a green badge with a date.
+D6. **Launch waves** — S6 proof post (blog #2), Show HN with the #36
+   reproduction as the hook, r/webdev, then ProductHunt once the catalog
+   exists (launch #2, not #1).
+
+**The #1 scoreboard**: GitHub stars vs every wrapper's repo · first result
+for "nativefier alternative" · listed in every "best site-specific browser"
+roundup · security page cited in discussions asking "is it secure like
+Tauri?" · wraps shipped by the Studio (opt-in count, like Nativefier's
+CATALOG did).
