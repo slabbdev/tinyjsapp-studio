@@ -236,13 +236,15 @@ function fillWrapForm(p) {
   if (gmRadio) gmRadio.checked = true;
   $('wrapSubdomains').checked = p.studio?.subdomains ?? false;
   $('wrapMedia').checked = p.studio?.media ?? false;
+  $('wrapBadge').value = p.studio?.badge ?? '';
+  $('wrapExternal').value = (p.studio?.external ?? []).join(', ');
   syncGateUI();
   // the icon preview mirrors the selected project's own icon
   $('iconPrev').innerHTML = p.icon ? `<img src="${p.icon}" alt="">` : 'auto';
   renderPreview();
 }
-// note: badge/external live in the project (tinyjs.json studio{}) but stay
-// out of the UI for now — the CLI flags remain the power path.
+// badge & external restore from the sidecar record — the CLI flags remain
+// the power path, the form fields are the everyday path.
 
 // "Wrap site" reads as "Update site" when the folder matches a project.
 function syncWrapButton() {
@@ -537,6 +539,8 @@ function collectConfig(dirOverride) {
     gate: mode === 'none' ? 'none' : mode === 'custom' ? customGate() : undefined,
     subdomains: wrap ? $('wrapSubdomains').checked : undefined,
     media: wrap && mode === 'wrapper' ? $('wrapMedia').checked : undefined,
+    badge: wrap ? ($('wrapBadge').value.trim() || undefined) : undefined,
+    external: wrap ? ($('wrapExternal').value.trim() || undefined) : undefined,
   };
 }
 
@@ -618,6 +622,8 @@ $('btnNew').addEventListener('click', () => {
   state.gateExtra = new Set();
   $('wrapSubdomains').checked = false;
   $('wrapMedia').checked = false;
+  $('wrapBadge').value = '';
+  $('wrapExternal').value = '';
   $('iconPrev').textContent = 'auto';
   state.project = null;
   $('project').hidden = true;
@@ -670,6 +676,18 @@ $('btnDuplicate').addEventListener('click', async () => {
     log('duplicated → ' + r.dir, 'ok');
     setProject(r.dir);
     loadProjects();
+  } catch (e) {
+    log(String(e.message ?? e), 'err');
+  }
+});
+
+$('btnResetData').addEventListener('click', async () => {
+  if (!state.project) return;
+  if (!confirm('Wipe this app\'s cookies and site data?\n\nThe next run starts signed-out, with fresh storage.')) return;
+  try {
+    const r = await tiny.api.call('resetData', { dir: state.project });
+    log(r.removed ? `site data wiped (${r.removed} location${r.removed > 1 ? 's' : ''}) — fresh login next run` :
+      'no stored site data found for this app', r.removed ? 'ok' : undefined);
   } catch (e) {
     log(String(e.message ?? e), 'err');
   }
@@ -773,10 +791,12 @@ function renderPreview() {
       + ($('wrapSubdomains').checked ? ' + subdomains' : '')
       + (gm === 'wrapper' && $('wrapMedia').checked ? ' + media' : ''));
     const title = $('wrapTitle').value.trim() || host || 'TinyJS App';
-    if (ua === 'iphone') mk = mockPhone(p, host);
-    else if (panel) mk = mockPanel(p, host);
+    const hasBadge = !!$('wrapBadge').value.trim();
+    if (hasBadge) chips.push('badge selector');
+    if (ua === 'iphone') mk = mockPhone(p, host, hasBadge);
+    else if (panel) mk = mockPanel(p, host, hasBadge);
     else mk = mockWindow({
-      title, frameless, dots: frameless && dots, p, host,
+      title, frameless, dots: frameless && dots, p, host, badge: hasBadge,
       floating: $('wrapAlwaysTop').checked,
     });
   }
@@ -785,7 +805,7 @@ function renderPreview() {
 
 ['wrapUrl', 'wrapName', 'wrapTitle', 'wrapUA', 'wrapDots',
   'wrapFrameless', 'wrapMenubar', 'wrapTray', 'wrapAlwaysTop', 'template',
-  'wrapSubdomains', 'wrapMedia',
+  'wrapSubdomains', 'wrapMedia', 'wrapBadge', 'wrapExternal',
 ].forEach((id) => {
   const el = $(id);
   if (!el) return;

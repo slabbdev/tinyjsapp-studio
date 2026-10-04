@@ -779,6 +779,46 @@ export const api = {
     return { ok: true, warnings: gateWarnings(cfg.api ?? null) };
   },
 
+  // Wipe a wrap's site data — cookies, localStorage, IndexedDB — so a stale
+  // session or a re-wrap starts clean (pairs with "sign out"). Where the
+  // data lives, per the runtime: the macOS dev webview persists a
+  // WKWebsiteDataStore keyed by app title (~/Library/WebKit/<title>);
+  // Windows built apps get a per-app WebView2 profile keyed by id
+  // (%APPDATA%\<id>\WebView2, 0.45+); Linux WebKitGTK keeps per-app dirs
+  // keyed by id under ~/.local/share and ~/.cache. This deletes, so every
+  // target must end in exactly the title or id — no traversal, ever.
+  async resetData({ dir }) {
+    const root = dir.replace(/[\\/]+$/, '');
+    const cfg = JSON.parse(dec.decode(await tjs.readFile(root + '/tinyjs.json')));
+    const title = String(cfg.title ?? cfg.name ?? '').trim();
+    const id = String(cfg.id ?? '').trim();
+    for (const key of [title, id]) {
+      if (key && (key.includes('/') || key.includes('\\') || key.includes('..'))) {
+        throw new Error(`refusing to reset: "${key}" is not a plain folder name`);
+      }
+    }
+    const home = tjs.env.HOME ?? tjs.env.USERPROFILE ?? '';
+    const targets = [];
+    if (IS_WIN) {
+      const appdata = tjs.env.APPDATA;
+      if (appdata && id) targets.push(appdata + '\\' + id + '\\WebView2');
+    } else if (IS_LINUX) {
+      if (id) targets.push(home + '/.local/share/' + id, home + '/.cache/' + id);
+    } else {
+      if (title) targets.push(home + '/Library/WebKit/' + title);
+    }
+    let removed = 0;
+    for (const t of targets) {
+      const base = t.split(/[\\/]/).pop();
+      if (base !== title && base !== id) continue; // the paranoia belt
+      try {
+        await tjs.remove(t, { recursive: true });
+        removed++;
+      } catch { /* nothing to remove at that path */ }
+    }
+    return { removed, targets };
+  },
+
   // Show the project in Finder / Explorer / the file manager.
   async reveal({ dir }) {
     const argv = IS_WIN ? ['explorer.exe', dir]

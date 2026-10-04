@@ -48,6 +48,7 @@
           <option value="universal-dmg">macOS · universal + DMG</option>
         </select>
         <button id="btnDuplicate" data-tip="Duplicate — same site, separate container (multi-account)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="5.5" y="5.5" width="9" height="9" rx="1.5"/><path d="M10.5 3.5v-1a1 1 0 0 0-1-1h-7a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h1" stroke-linecap="round"/></svg></button>
+        <button id="btnResetData" data-tip="Wipe this app's cookies & site data — fresh login on next run">Reset data</button>
         <button id="btnIconProject" data-tip="Replace the app icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="1.8" y="1.8" width="12.4" height="12.4" rx="2"/><circle cx="5.6" cy="5.6" r="1.4"/><path d="m14 10.5-3.2-3.2-6 6" stroke-linecap="round"/></svg></button>
         <button id="btnReveal" data-tip="Show the project folder"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M1.8 3.2h4.4l1.6 1.8h6.4v7.8H1.8z"/></svg></button>
         <span class="grow"></span>
@@ -135,6 +136,14 @@
               <option value="engine">engine — stock</option>
               <option value="iphone">iPhone — mobile</option>
             </select>
+          </div>
+          <div class="field wrap-only" data-tip="CSS selector of the site's unread count — it mirrors onto the dock/taskbar badge">
+            <label for="wrapBadge">Unread badge selector</label>
+            <input id="wrapBadge" type="text" placeholder=".unread-count" spellcheck="false">
+          </div>
+          <div class="field wrap-only" data-tip="Comma-separated domains that open in the default browser instead of the app">
+            <label for="wrapExternal">Open in browser</label>
+            <input id="wrapExternal" type="text" placeholder="mail.google.com, drive.google.com" spellcheck="false">
           </div>
           <div class="sec wrap-only">Permissions</div>
           <div class="gatepicker wrap-only" id="gatePicker">
