@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Security — TinyJS App Studio</title>
+  <meta name="description" content="What a wrapped site can and cannot do: the permission gate, storage isolation, signed updates — published, linked, and attacked on purpose.">
+  <link rel="icon" type="image/png" href="./favicon.png">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Security — TinyJS App Studio">
+  <meta property="og:description" content="A wrapped site can do exactly what you allow. Nothing else. Here is the proof, hole by hole.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+  <style>
+    /* page-specific — the landing's tokens, a quieter layout */
+    .sec-hero { padding: 130px 0 56px; position: relative; overflow: hidden; }
+    .sec-hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.1; margin: 18px 0 14px; }
+    .sec-hero h1 em { font-style: normal; color: var(--blue); }
+    .sec-hero .lead { font-size: 1.1rem; color: var(--muted); max-width: 640px; line-height: 1.65; }
+    .sec-wrap { max-width: 1060px; margin: 0 auto; padding: 0 24px; }
+    .sec-section { padding: 44px 0; border-top: 1px solid var(--line); }
+    .sec-section > h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; }
+    .sec-section > p.sub { color: var(--muted); margin-bottom: 26px; max-width: 720px; line-height: 1.6; }
+
+    .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 760px) { .duo { grid-template-columns: 1fr; } }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 24px; }
+    .card h3 { font-size: .85rem; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 14px; }
+    .card.can h3 { color: var(--ok, #4cc38a); }
+    .card.cant h3 { color: var(--err, #f2726f); }
+    .card ul { list-style: none; }
+    .card li { font-size: .95rem; color: var(--text); padding: 7px 0 7px 26px; position: relative; line-height: 1.45; border-top: 1px solid var(--line); }
+    .card li:first-child { border-top: 0; }
+    .card li::before { position: absolute; left: 2px; font-weight: 700; }
+    .card.can li::before { content: '✓'; color: var(--ok, #4cc38a); }
+    .card.cant li::before { content: '✕'; color: var(--err, #f2726f); }
+    .card li small { display: block; color: var(--muted); font-size: .8rem; }
+
+    .mech { width: 100%; border-collapse: collapse; font-size: .93rem; }
+    .mech td { padding: 12px 14px; border-top: 1px solid var(--line); vertical-align: top; line-height: 1.5; }
+    .mech tr:first-child td { border-top: 0; }
+    .mech .m-what { color: var(--text); font-weight: 600; width: 34%; }
+    .mech .m-why { color: var(--muted); }
+    .mech .m-since { white-space: nowrap; font-family: 'JetBrains Mono', monospace; font-size: .78rem; color: var(--blue); }
+    .mech a { color: var(--blue); text-decoration: none; }
+    .mech a:hover { text-decoration: underline; }
+
+    .open-item { display: flex; gap: 12px; align-items: baseline; padding: 12px 0; border-top: 1px solid var(--line); }
+    .open-item:first-of-type { border-top: 0; }
+    .badge { flex-shrink: 0; font: 600 .72rem 'JetBrains Mono', monospace; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--orange); }
+    .open-item p { color: var(--text); font-size: .93rem; line-height: 1.5; }
+    .open-item a { color: var(--blue); text-decoration: none; }
+    .open-item a:hover { text-decoration: underline; }
+
+    .who { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    @media (max-width: 760px) { .who { grid-template-columns: 1fr; } }
+    .who .card { text-align: center; }
+    .who .card .big { font-size: 1.7rem; font-weight: 800; margin: 6px 0 4px; }
+    .who .card p { color: var(--muted); font-size: .88rem; line-height: 1.5; }
+    .who .yes .big { color: var(--ok, #4cc38a); }
+    .who .no .big { color: var(--muted); }
+
+    .sec-cta { text-align: center; padding: 56px 24px 90px; }
+    .sec-cta h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 10px; }
+    .sec-cta p { color: var(--muted); margin-bottom: 26px; }
+    .sec-cta .row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .foot { text-align: center; color: var(--muted); font-size: .82rem; padding: 26px 0 40px; border-top: 1px solid var(--line); }
+    .foot a { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <nav class="nav" id="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="./index.html">
+        <img src="./img/icon.webp" alt="" width="28" height="28">
+        <span>TinyJS&nbsp;<b>App&nbsp;Studio</b></span>
+      </a>
+      <div class="nav-links">
+        <a href="./index.html#apps">Apps</a>
+        <a href="./index.html#showcase">Showcase</a>
+        <a href="./index.html#features">Features</a>
+        <a href="./security.html">Security</a>
+        <a href="./index.html#get">Get it</a>
+      </div>
+      <a class="btn btn-ghost btn-sm nav-gh" href="https://github.com/slabbdev/tinyjsapp-studio" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        <span>GitHub</span>
+      </a>
+    </div>
+  </nav>
+
+  <header class="sec-hero">
+    <div class="sec-wrap">
+      <p class="pill">🔒 security, published — not promised</p>
+      <h1>A wrapped site can do exactly<br>what you allow. <em>Nothing else.</em></h1>
+      <p class="lead">Every claim on this page links the tinyjs release or issue behind it,
+      and the <a href="https://github.com/slabbdev/tinyjsapp-studio/tree/main/test/adversarial" target="_blank" rel="noopener" style="color:var(--blue)">adversarial suite</a>
+      attacks our own wraps on camera — including the holes that are still open.</p>
+    </div>
+  </header>
+
+  <main class="sec-wrap">
+    <section class="sec-section">
+      <h2>What a wrapped site can do</h2>
+      <p class="sub">The <code>wrapper</code> posture every Studio wrap gets, verbatim from the runtime.
+      A site that would phish you in a browser tab can phish you in its window — the gate cannot fix
+      social engineering. The fix is wrapping sites you chose.</p>
+      <div class="duo">
+        <div class="card can">
+          <h3>Can — the wrapper posture</h3>
+          <ul>
+            <li>Window controls, app menus, tray icon<small><code>win.* · menu.* · tray.*</code></small></li>
+            <li>Native dialogs, notifications, sound<small><code>dialog.* · notify · sound.play</code></small></li>
+            <li>Its own storage, theme, system info<small><code>store.* · theme.get · system.*</code></small></li>
+            <li>Dock badge &amp; progress, media state<small><code>app.badge · app.progress · nowplaying.*</code></small></li>
+            <li>Write the clipboard, open links outside<small><code>clip.write · shell.open</code></small></li>
+          </ul>
+        </div>
+        <div class="card cant">
+          <h3>Cannot — outside the posture</h3>
+          <ul>
+            <li>Read the filesystem<small>rejected at the gate — verified live, T1</small></li>
+            <li>Read the clipboard<small>write-only posture — verified live, T2</small></li>
+            <li>Reach secrets or automation<small>debug.get denied — verified live, T3</small></li>
+            <li>Escape via file:, javascript: or path walks<small>file: re-keyed to the site origin — T5a</small></li>
+            <li>Borrow the gate from an iframe<small>subframes get no bridge at all — verified live, T6</small></li>
+            <li>Pollute the app's store via __proto__<small>stored as inert data — verified live, T7</small></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec-section">
+      <h2>The guarantees, and when they shipped</h2>
+      <p class="sub">These are <a href="https://tinyjs.app" target="_blank" rel="noopener" style="color:var(--blue)">tinyjs</a> runtime properties —
+      the Studio surfaces and configures them; the runtime enforces them, in the backend, where a hostile page cannot edit the check.</p>
+      <table class="mech">
+        <tr><td class="m-what">Deny-by-default per-origin capability gate</td><td class="m-why">Unlisted origins get nothing; the gate re-keys on the frame's real origin, engine-attested — not what the page claims.</td><td class="m-since">0.38+</td></tr>
+        <tr><td class="m-what">Subframe token gating</td><td class="m-why">A hostile cross-origin iframe cannot post a hand-built message and be gated as the top frame. <a href="https://github.com/tarwin/tinyjsapp/issues/18" target="_blank" rel="noopener">#18</a></td><td class="m-since">0.46</td></tr>
+        <tr><td class="m-what">win.open confinement</td><td class="m-why">Pages may only open http(s) URLs or files inside their own frontend dir; <code>file:</code>, <code>javascript:</code>, <code>../</code> walks and UNC paths refused. <a href="https://github.com/tarwin/tinyjsapp/issues/29" target="_blank" rel="noopener">#29</a></td><td class="m-since">0.46</td></tr>
+        <tr><td class="m-what">Authenticated transport</td><td class="m-why">The app↔window pipe requires a one-time secret handshake; single-instance pipes are per-user with ACLs. Nothing listens on any port. <a href="https://github.com/tarwin/tinyjsapp/issues/29" target="_blank" rel="noopener">#29</a></td><td class="m-since">0.46</td></tr>
+        <tr><td class="m-what">Storage isolation</td><td class="m-why">Every app gets its own cookies, localStorage and IndexedDB — no cross-app reading, which is also why two wraps of one site are two accounts.</td><td class="m-since">macOS always · Windows 0.45</td></tr>
+        <tr><td class="m-what">Built apps scrub the environment</td><td class="m-why">Inherited <code>TINYJS_*</code>/<code>WEBVIEW2_*</code> variables are dropped — no page replacement, script injection or debug flags through env. <a href="https://github.com/tarwin/tinyjsapp/issues/29" target="_blank" rel="noopener">#29</a></td><td class="m-since">0.45</td></tr>
+        <tr><td class="m-what">Supply-chain pins &amp; store hardening</td><td class="m-why">txiki.js downloads are hash-pinned; <code>tiny.store</code> treats <code>__proto__</code> keys as inert data. <a href="https://github.com/tarwin/tinyjsapp/issues/26" target="_blank" rel="noopener">#26</a></td><td class="m-since">0.45</td></tr>
+        <tr><td class="m-what">Signed builds, verified updates</td><td class="m-why">Codesigned, notarization-ready bundles; the self-updater checks sha256 <em>and</em> the code signature, swaps in place, rolls back on failure.</td><td class="m-since">pre-1.0</td></tr>
+      </table>
+    </section>
+
+    <section class="sec-section">
+      <h2>Known open items — not hidden, tracked</h2>
+      <p class="sub">A published threat model with open items beats a marketing page with none.
+      Each row flips to “fixed in X” as releases land.</p>
+      <div class="open-item"><span class="badge">open</span><p><a href="https://github.com/tarwin/tinyjsapp/issues/36" target="_blank" rel="noopener">#36 — win.printToPDF writes to any page-named path.</a> A wrapped site can clobber files it can name. Reproduced live by our suite (T8) — the fix will be provably the fix.</p></div>
+      <div class="open-item"><span class="badge">open</span><p><a href="https://github.com/tarwin/tinyjsapp/issues/30" target="_blank" rel="noopener">#30 — hardening batch 2.</a> tiny-media proxy auth, navigation-scheme bypass, the <code>curl | sh</code> updater, setup.sh races, api-gate edges.</p></div>
+      <div class="open-item"><span class="badge">in flight</span><p><a href="https://github.com/tarwin/tinyjsapp/issues/19" target="_blank" rel="noopener">#19 — Windows artifacts are unsigned</a> (fix: <a href="https://github.com/tarwin/tinyjsapp/pull/33" target="_blank" rel="noopener">#33</a> pins the signer in the manifest).</p></div>
+      <div class="open-item"><span class="badge">observation</span><p>DOM popups execute <code>javascript:</code> URLs in the opener's own origin — no privilege gain (same gate), but the 0.46 screening covers the bridge path only. Surfaced by T5b; being confirmed upstream.</p></div>
+    </section>
+
+    <section class="sec-section">
+      <h2>Who publishes this?</h2>
+      <div class="who">
+        <div class="card yes"><div class="big">✓</div><p><strong>Tauri &amp; Electron</strong> publish security models and checklists — for developers who build with them.</p></div>
+        <div class="card no"><div class="big">—</div><p><strong>Nativefier · WebCatalog · Unite · Wavebox</strong> publish no threat model at all.</p></div>
+        <div class="card yes"><div class="big">✓</div><p><strong>TinyJS App Studio</strong> — the only site-wrapper with a threat model, an attack suite, and its open holes on display.</p></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="sec-cta">
+    <h2>Read it all, attack it yourself</h2>
+    <p>The full threat model, the adversarial suite and the reporting policy are in the repo.</p>
+    <div class="row">
+      <a class="btn btn-primary" href="https://github.com/slabbdev/tinyjsapp-studio/blob/main/docs/THREAT-MODEL.md" target="_blank" rel="noopener">Threat model</a>
+      <a class="btn btn-ghost" href="https://github.com/slabbdev/tinyjsapp-studio/tree/main/test/adversarial" target="_blank" rel="noopener">Adversarial suite</a>
+      <a class="btn btn-ghost" href="https://github.com/slabbdev/tinyjsapp-studio/blob/main/SECURITY.md" target="_blank" rel="noopener">Report a vulnerability</a>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <div class="sec-wrap">Guarantees enforced by <a href="https://tinyjs.app" target="_blank" rel="noopener">tinyjs</a> — surfaced, configured and proven by TinyJS App Studio. Credit where it's due is the point.</div>
+  </footer>
+
+  <script>
+    // nav scroll state only — the page is static by design
+    addEventListener('scroll', () => {
+      document.getElementById('nav').classList.toggle('scrolled', scrollY > 30);
+    }, { passive: true });
+  </script>
+</body>
+</html>
