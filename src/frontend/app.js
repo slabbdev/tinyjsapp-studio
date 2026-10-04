@@ -231,6 +231,12 @@ function fillWrapForm(p) {
   $('wrapDots').value = p.studio?.dots === false ? 'none' : 'dots';
   $('dotsField').hidden = !p.frameless || (p.studio?.panel ?? false);
   $('wrapAlwaysTop').checked = p.studio?.top ?? false;
+  const gm = p.studio?.gateMode ?? 'wrapper';
+  const gmRadio = document.querySelector(`input[name="gatePreset"][value="${gm}"]`);
+  if (gmRadio) gmRadio.checked = true;
+  $('wrapSubdomains').checked = p.studio?.subdomains ?? false;
+  $('wrapMedia').checked = p.studio?.media ?? false;
+  syncGateUI();
   // the icon preview mirrors the selected project's own icon
   $('iconPrev').innerHTML = p.icon ? `<img src="${p.icon}" alt="">` : 'auto';
   renderPreview();
@@ -269,12 +275,224 @@ async function chooseIcon(dir) {
 $('btnIconPick').addEventListener('click', () => chooseIcon());
 $('btnIconProject').addEventListener('click', () => state.project && chooseIcon(state.project));
 
+// --- the api gate: picker, custom chips, Gate tab ---------------------------
+// Verbs verbatim from the runtime's API_PRESETS.wrapper (mirrored in
+// src/main.js — keep the two lists identical). The UI never invents powers:
+// every chip maps to a wire-method pattern tinyjs actually enforces.
+const WRAPPER_PRESET = ['notify', 'dialog.*', 'win.*', 'menu.*', 'tray.*', 'store.*',
+  'clip.write', 'shell.open', 'theme.get', 'system.locale', 'system.capabilities',
+  'system.requirements', 'system.info', 'app.info', 'app.badge', 'app.attention',
+  'app.progress', 'sound.play', 'nowplaying.*', 'power.prevent', 'power.allow'];
+const GATE_EXTRA = [
+  { verb: 'media.*', why: 'camera & mic — on macOS this keyhole replaces the per-site consent prompt' },
+  { verb: 'clip.read', why: 'read the clipboard — anything the user copied, in any app' },
+  { verb: 'fs.*', why: 'the filesystem — files, everywhere the user can' },
+  { verb: 'debug.get', why: 'secrets & automation — clipboard, wifi, frontmost app, other windows' },
+  { verb: 'spotlight.index', why: 'search the user\'s home directory' },
+];
+state.gateSel = new Set(WRAPPER_PRESET);   // custom mode: wrapper-posture chips
+state.gateExtra = new Set();               // custom mode: deliberate grants
+const gateMode = () =>
+  document.querySelector('input[name="gatePreset"]:checked')?.value ?? 'wrapper';
+
+function customGate() {
+  return {
+    disable: ['*'],
+    enable: [
+      ...WRAPPER_PRESET.filter((v) => state.gateSel.has(v)),
+      ...GATE_EXTRA.map((x) => x.verb).filter((v) => state.gateExtra.has(v)),
+    ],
+  };
+}
+
+function gateChip(verb, on, why) {
+  return `<button type="button" class="gv${on ? ' on' : ''}" data-verb="${esc(verb)}"${why ? ` data-tip="${esc(why)}"` : ''}>${esc(verb)}</button>`;
+}
+
+function renderGateCustom() {
+  $('gateIn').innerHTML = WRAPPER_PRESET.map((v) => gateChip(v, state.gateSel.has(v))).join('');
+  $('gateOut').innerHTML = GATE_EXTRA.map((x) => gateChip(x.verb, state.gateExtra.has(x.verb), x.why)).join('');
+  $('gateJson').textContent = JSON.stringify(customGate(), null, 2);
+}
+
+function syncGateUI() {
+  const mode = gateMode();
+  const wrap = state.source === 'wrap';
+  $('gateCustom').hidden = !wrap || mode !== 'custom';
+  $('wrapMedia').hidden = !wrap || mode !== 'wrapper';
+  if (mode === 'custom') renderGateCustom();
+}
+
+$('gatePicker').addEventListener('change', () => { syncGateUI(); renderPreview(); });
+$('gateCustom').addEventListener('click', (e) => {
+  const b = e.target.closest('.gv');
+  if (!b) return;
+  const set = e.target.closest('#gateIn') ? state.gateSel : state.gateExtra;
+  if (set.has(b.dataset.verb)) set.delete(b.dataset.verb); else set.add(b.dataset.verb);
+  renderGateCustom();
+});
+
+// The one-line trust summary for whatever posture is active — the sentence a
+// user can screenshot before wrapping.
+const WRAPPER_TRUST = 'window controls & menus · notifications & dock · its own storage · native dialogs & outbound links — and nothing else: no filesystem, no clipboard read, no secrets, no camera or mic';
+const TRUST_LABELS = [
+  ['win.*', 'window controls'], ['menu.*', 'app menus'], ['tray.*', 'tray icon'],
+  ['notify', 'notifications'], ['sound.play', 'sound'], ['app.badge', 'dock badge'],
+  ['app.progress', 'dock progress'], ['app.attention', 'attention ping'],
+  ['app.info', 'app info'], ['nowplaying.*', 'media state'], ['store.*', 'its own storage'],
+  ['dialog.*', 'native dialogs'], ['shell.open', 'outbound links'], ['clip.write', 'clipboard write'],
+  ['theme.get', 'theme'], ['system.', 'system info'], ['power.', 'power requests'],
+  ['media.*', 'CAMERA & MIC'], ['clip.read', 'CLIPBOARD READ'], ['fs.*', 'FILESYSTEM'],
+  ['debug.get', 'SECRETS & AUTOMATION'], ['spotlight.index', 'HOME SEARCH'],
+];
+function trustFor(view) {
+  if (view.mode === 'absent') return 'Every page holds the full backend — filesystem included. Fix below.';
+  if (view.mode === 'none') return 'Pages get nothing beyond the bootstrap read-back (client.hello).';
+  if (view.mode === 'preset' && view.preset === 'wrapper') return WRAPPER_TRUST;
+  if (view.mode === 'all') return 'Every method, every page — the one config that must not ship.';
+  const on = new Set(view.enable ?? []);
+  const labels = TRUST_LABELS.filter(([p]) => on.has(p)).map(([, l]) => l);
+  const rest = [...on].filter((v) => !TRUST_LABELS.some(([p]) => p === v));
+  const list = [...labels, ...rest].join(' · ') || 'nothing';
+  return 'Pages may call: ' + list + (view.origins ? ' — origins matching no keyhole get nothing.' : '.');
+}
+
+// --- the Gate tab: inspect (and edit) a project's api gate ------------------
+
+let gateSeq = 0;
+async function renderGate() {
+  const seq = ++gateSeq;
+  const body = $('gateBody');
+  if (!state.project) {
+    body.innerHTML = '<p class="hint" style="margin-top:0">Select a project to inspect its api gate — what its pages may call, and what they can\'t.</p>';
+    return;
+  }
+  body.innerHTML = '<p class="hint">reading the gate…</p>';
+  let g;
+  try { g = await tiny.api.call('gate', { dir: state.project }); }
+  catch (e) { body.innerHTML = `<p class="hint">${esc(String(e.message ?? e))}</p>`; return; }
+  if (seq !== gateSeq) return; // a newer render took over
+  state.gateData = g;
+  state.gateEditKeys = new Set();
+  state.gateSets = new Map();
+  renderGateView();
+}
+
+// Resolve what an api entry lets through — the runtime's semantics restated.
+function resolveOn(entry) {
+  if (entry == null) return new Set();
+  if (entry === 'wrapper') return new Set(WRAPPER_PRESET);
+  if (typeof entry === 'string') return new Set();
+  if (Array.isArray(entry)) return new Set(entry);
+  return new Set(entry.enable ?? []);
+}
+
+function gateEntryChips(key, entry) {
+  if (!state.gateSets.has(key)) state.gateSets.set(key, resolveOn(entry));
+  const on = state.gateSets.get(key);
+  const known = new Set([...WRAPPER_PRESET, ...GATE_EXTRA.map((x) => x.verb)]);
+  const chips = [
+    ...WRAPPER_PRESET.map((v) => gateChip(v, on.has(v))),
+    ...GATE_EXTRA.map((x) => gateChip(x.verb, on.has(x.verb), x.why)),
+    ...[...on].filter((v) => !known.has(v)).map((v) => gateChip(v, true)),
+  ];
+  return chips.join('');
+}
+
+function renderGateView() {
+  const g = state.gateData;
+  const body = $('gateBody');
+  const banners = g.warnings.map((w) => `<div class="gate-banner ${w.level}">${esc(w.text)}</div>`).join('');
+  const fix = (g.view.mode === 'absent' || g.view.mode === 'all' || (g.view.mode === 'preset' && g.view.preset !== 'wrapper' && g.view.preset !== 'none'))
+    ? '<button id="btnGateFix" class="primary wide">Apply the wrapper preset</button>' : '';
+  const entries = [];
+  const topEntry = g.view.mode === 'preset' || g.view.mode === 'none' || g.view.mode === 'all' || g.view.mode === 'absent'
+    ? (g.view.mode === 'preset' ? g.view.preset : g.view.mode === 'none' ? 'none' : null)
+    : (g.view.mode === 'lists' ? g.api : g.view.mode === 'object' ? { preset: g.view.preset, disable: g.view.disable, enable: g.view.enable } : null);
+  if (topEntry && !(g.view.mode === 'object' && !g.view.preset && !g.view.disable?.length && !g.view.enable?.length)) {
+    entries.push(`<div class="gate-entry"><div class="ge-head"><span class="ge-name">top-level gate</span><span class="ge-mode">${esc(typeof topEntry === 'string' ? `preset: ${topEntry}` : 'lists')}</span></div><div class="gate-row" data-key="top">${gateEntryChips('top', topEntry)}</div></div>`);
+  }
+  if (g.view.mode === 'object' && g.view.origins) {
+    for (const [origin, entry] of Object.entries(g.view.origins)) {
+      entries.push(`<div class="gate-entry"><div class="ge-head"><span class="ge-name">${esc(origin)}</span><span class="ge-mode">${esc(typeof entry === 'string' ? `preset: ${entry}` : 'keyhole')}</span></div><div class="gate-row" data-key="${esc(origin)}">${gateEntryChips(origin, entry)}</div></div>`);
+    }
+  }
+  body.innerHTML = `${banners}
+    <div class="trust">${esc(trustFor(g.view))}</div>${fix}${entries.join('')}
+    <button id="btnGateSave" class="primary wide" hidden>Save gate</button>
+    <p class="hint">Chips are wire-method patterns the runtime enforces —
+    enable wins over disable. Saving writes the real <code>api</code> key in
+    tinyjs.json; nothing is abstracted away.</p>`;
+}
+
+$('gateBody').addEventListener('click', async (e) => {
+  const chip = e.target.closest('.gv');
+  if (chip) {
+    const row = chip.closest('.gate-row');
+    const key = row?.dataset.key;
+    if (!key) return;
+    const set = state.gateSets.get(key);
+    if (!set) return;
+    if (set.has(chip.dataset.verb)) set.delete(chip.dataset.verb); else set.add(chip.dataset.verb);
+    state.gateEditKeys.add(key);
+    chip.classList.toggle('on');
+    $('btnGateSave').hidden = false;
+    return;
+  }
+  if (e.target.id === 'btnGateFix') {
+    let origin = null;
+    try { origin = state.gateData.url ? new URL(state.gateData.url).origin : null; } catch { /* keep null */ }
+    const api = origin ? { origins: { [origin]: 'wrapper' } } : 'wrapper';
+    try {
+      const r = await tiny.api.call('gatePatch', { dir: state.project, api });
+      log('gate fixed — the wrapper preset is in force' + (r.warnings?.length ? ' (see the Gate tab)' : ''), 'ok');
+      renderGate();
+    } catch (err) { log(String(err.message ?? err), 'err'); }
+    return;
+  }
+  if (e.target.id === 'btnGateSave') {
+    const v = state.gateData.view;
+    let api;
+    const topTouched = state.gateEditKeys.has('top');
+    if (v.mode === 'object' && v.origins) {
+      api = { origins: {} };
+      for (const [o, entry] of Object.entries(state.gateData.api.origins)) {
+        api.origins[o] = state.gateEditKeys.has(o)
+          ? { disable: ['*'], enable: [...(state.gateSets.get(o) ?? new Set())] }
+          : entry;
+      }
+      if (topTouched) Object.assign(api, { disable: ['*'], enable: [...(state.gateSets.get('top') ?? new Set())] });
+      else {
+        const a = state.gateData.api;
+        if (a.preset != null) api.preset = a.preset;
+        if (a.disable) api.disable = a.disable;
+        if (a.enable) api.enable = a.enable;
+      }
+    } else if (v.mode === 'lists' || topTouched) {
+      api = { disable: ['*'], enable: [...(state.gateSets.get('top') ?? new Set())] };
+    } else {
+      api = state.gateData.api; // an untouched preset string stays a string
+    }
+    try {
+      const r = await tiny.api.call('gatePatch', { dir: state.project, api });
+      log('gate saved — ' + (r.warnings.some((w) => w.level === 'bad') ? 'warnings below, check the Gate tab' : 'the runtime enforces it as written'), r.warnings.some((w) => w.level === 'bad') ? 'err' : 'ok');
+      renderGate();
+    } catch (err) { log(String(err.message ?? err), 'err'); }
+  }
+});
+
 // --- tabs ------------------------------------------------------------------
+
+const mainPane = document.querySelector('.inspector-scroll .pane:not(#gatePane)');
 
 document.querySelectorAll('.tab').forEach((tab) => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
     tab.classList.add('active');
+    const isGate = tab.dataset.tab === 'gate';
+    $('gatePane').hidden = !isGate;
+    mainPane.hidden = isGate;
+    if (isGate) { renderGate(); return; }
     state.source = tab.dataset.tab;
     syncSubChoices();
     syncWrapButton();
@@ -298,6 +516,7 @@ function collectConfig(dirOverride) {
     || (wrap ? dirFromUrl(url) : 'my-app');
   const frameless = $('wrapFrameless').checked;
   const menubar = wrap && $('wrapMenubar').checked;
+  const mode = wrap ? gateMode() : undefined;
   return {
     source: state.source,
     parent: state.parent,
@@ -311,6 +530,13 @@ function collectConfig(dirOverride) {
     menubar,
     panel: menubar && $('wrapTray').value === 'panel',
     alwaysTop: wrap ? $('wrapAlwaysTop').checked : undefined,
+    // the gate: 'wrapper' is the CLI's own default (send nothing), 'none'
+    // and the custom object are patched in after the wrap, media rides the
+    // per-origin keyhole. In custom mode the chips already include media.*.
+    gateMode: mode,
+    gate: mode === 'none' ? 'none' : mode === 'custom' ? customGate() : undefined,
+    subdomains: wrap ? $('wrapSubdomains').checked : undefined,
+    media: wrap && mode === 'wrapper' ? $('wrapMedia').checked : undefined,
   };
 }
 
@@ -363,6 +589,7 @@ function syncSubChoices() {
   $('wrapTray').hidden = !menubar;
   $('dotsField').hidden = !frameless || panel;
   if (panel) $('wrapFrameless').checked = true;
+  syncGateUI();
 }
 $('wrapMenubar').addEventListener('change', syncSubChoices);
 $('wrapTray').addEventListener('change', () => {
@@ -386,6 +613,11 @@ $('btnNew').addEventListener('click', () => {
   $('wrapMenubar').checked = false;
   $('wrapTray').value = 'window';
   $('wrapAlwaysTop').checked = false;
+  document.querySelector('input[name="gatePreset"][value="wrapper"]').checked = true;
+  state.gateSel = new Set(WRAPPER_PRESET);
+  state.gateExtra = new Set();
+  $('wrapSubdomains').checked = false;
+  $('wrapMedia').checked = false;
   $('iconPrev').textContent = 'auto';
   state.project = null;
   $('project').hidden = true;
@@ -536,6 +768,10 @@ function renderPreview() {
     if (menubar) chips.push(panel ? 'menu bar · panel' : 'menu bar · window');
     if ($('wrapAlwaysTop').checked) chips.push('always on top');
     chips.push('UA: ' + uaSel);
+    const gm = gateMode();
+    chips.push('gate: ' + gm
+      + ($('wrapSubdomains').checked ? ' + subdomains' : '')
+      + (gm === 'wrapper' && $('wrapMedia').checked ? ' + media' : ''));
     const title = $('wrapTitle').value.trim() || host || 'TinyJS App';
     if (ua === 'iphone') mk = mockPhone(p, host);
     else if (panel) mk = mockPanel(p, host);
@@ -549,6 +785,7 @@ function renderPreview() {
 
 ['wrapUrl', 'wrapName', 'wrapTitle', 'wrapUA', 'wrapDots',
   'wrapFrameless', 'wrapMenubar', 'wrapTray', 'wrapAlwaysTop', 'template',
+  'wrapSubdomains', 'wrapMedia',
 ].forEach((id) => {
   const el = $(id);
   if (!el) return;

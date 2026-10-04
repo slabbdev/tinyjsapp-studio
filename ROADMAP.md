@@ -51,7 +51,7 @@ page → changelog and issues; Studio proposed upstream as the reference GUI).
 No one else in the site-wrapper space publishes a threat model at all — being
 the first *is* the #1 positioning.
 
-S1. **Threat model, public** (`docs/THREAT-MODEL.md` + `SECURITY.md`). The
+S1. ✅ **Threat model, public** (`docs/THREAT-MODEL.md` + `SECURITY.md`). The
    wrapped site is the adversary. Document each tinyjs mechanism and credit
    it: deny-by-default per-origin capability gate (0.38+); RPC over a private
    Unix socket / named pipe with a session-token handshake (0.46); `win.open`
@@ -64,7 +64,7 @@ S1. **Threat model, public** (`docs/THREAT-MODEL.md` + `SECURITY.md`). The
    updater), Windows artifacts aren't signed yet (#19/#33), and the backend
    process has full user access — no OS app sandbox. Honesty is the product.
    Plus `SECURITY.md` with GitHub private vulnerability reporting.
-S2. **Adversarial suite** (`test/adversarial/`): each attack class maps to a
+S2. ✅ **Adversarial suite** (verified live 2026-10-04 — see test/adversarial/README.md for the observed matrix) (`test/adversarial/`): each attack class maps to a
    shipped fix, and we prove it holds *from outside the project* — a hostile
    iframe posting a hand-built message to borrow the top frame's gate (#18/
    0.46), `win.open` file:// escapes (#29/0.46), cross-app cookie/localStorage
@@ -78,13 +78,13 @@ S3. **Fix our own known hole before publishing**: the frameless drag-strip's
    — a UX bug with a security reading; window chrome belongs in API_ALWAYS
    (Phase 3 #14). Open upstream items (#30, #19) go in the threat model's
    known-limitations section, not in a footnote.
-S4. **Security page on the landing site**: "What can a wrapped site do?"
+S4. ✅ **Security page on the landing site** (site/security.html): "What can a wrapped site do?"
    Nothing you didn't allow — the gate, the handshake, the isolation, in user
    language, every claim a link into tinyjs's changelog or issues. Cross-link
    both projects: propose the Studio to Tarwin as the reference GUI for
    tinyjsapp-examples, and contribute the adversarial suite upstream as
    tinyjs integration tests.
-S5. **Permission matrix in the Studio** (wrap form + config inspector):
+S5. ✅ **Permission matrix in the Studio** (wrap form + Gate tab) (wrap form + config inspector):
    every bridge API × origin, visible and editable before generate — the gate
    made a feature, Chrome's site-permissions UX. After generate, a one-glance
    trust summary the user can screenshot ("this app exposes: `app.badge` →

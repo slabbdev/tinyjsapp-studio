@@ -354,14 +354,27 @@ export async function applyFinishing(dir, opts) {
     panel: !!opts.panel,
     dots: opts.frameless ? opts.dots !== false : null,
     badge: opts.badge ?? null,
+    gateMode: opts.gateMode ?? null, // null = a scaffolded app, not a wrap
+    subdomains: !!opts.subdomains,
+    media: !!opts.media,
     external: opts.external
       ? String(opts.external).split(',').map((s) => s.trim()).filter(Boolean)
       : null,
   };
   await tjs.writeFile(root + '/.tinyjs-studio.json', enc.encode(JSON.stringify(record, null, 2) + '\n'));
-  if (opts.badge && cfg.api?.origins) {
+  // Gate overrides, applied after the CLI wrote its own config: a custom
+  // gate object replaces `api` outright; 'none' is the explicit empty
+  // posture. Extra verbs ride the per-origin keyholes (preset + enable
+  // merges in the runtime): the badge's app.badge, the media consent
+  // keyhole — only onto entries that are the plain wrapper preset.
+  if (opts.gate === 'none') cfg.api = 'none';
+  else if (opts.gate && typeof opts.gate === 'object') cfg.api = opts.gate;
+  const extras = [];
+  if (opts.badge) extras.push('app.badge');
+  if (opts.media) extras.push('media.*');
+  if (extras.length && cfg.api?.origins && typeof cfg.api === 'object') {
     for (const [origin, gate] of Object.entries(cfg.api.origins)) {
-      if (gate === 'wrapper') cfg.api.origins[origin] = { preset: 'wrapper', enable: ['app.badge'] };
+      if (gate === 'wrapper') cfg.api.origins[origin] = { preset: 'wrapper', enable: extras };
     }
   }
   await tjs.writeFile(p, enc.encode(JSON.stringify(cfg, null, 2) + '\n'));
@@ -373,6 +386,70 @@ async function patchTitle(dir, title) {
   const cfg = JSON.parse(dec.decode(await tjs.readFile(p)));
   cfg.title = String(title).trim().slice(0, 60);
   await tjs.writeFile(p, enc.encode(JSON.stringify(cfg, null, 2) + '\n'));
+}
+
+// --- the api gate, as the Studio shows it -----------------------------------
+// Verbs verbatim from the runtime's API_PRESETS.wrapper (runtime/bridge.js —
+// the version this Studio ships against). The UI renders what tinyjs
+// enforces; if the runtime grows the preset, update this list with it.
+const WRAPPER_PRESET = [
+  'notify', 'dialog.*', 'win.*', 'menu.*', 'tray.*', 'store.*',
+  'clip.write', 'shell.open', 'theme.get', 'system.locale',
+  'system.capabilities', 'system.requirements', 'system.info',
+  'app.info', 'app.badge', 'app.attention', 'app.progress',
+  'sound.play', 'nowplaying.*', 'power.prevent', 'power.allow',
+];
+// Outside the wrapper posture — granting these is a deliberate act, and the
+// UI says why each one asks for caution (media.* replaces the OS consent
+// prompt on macOS; the rest touch the machine or its secrets).
+const GATE_EXTRA = [
+  { verb: 'media.*', why: 'camera & mic — on macOS this keyhole replaces the per-site consent prompt' },
+  { verb: 'clip.read', why: 'read the clipboard — anything the user copied, any app' },
+  { verb: 'fs.*', why: 'the filesystem — files, everywhere the user can' },
+  { verb: 'debug.get', why: 'secrets & automation — clipboard, wifi, frontmost app, other windows' },
+  { verb: 'spotlight.index', why: 'search the user\'s home directory' },
+];
+// Semantic warnings, mirroring the runtime's own edge cases (bridge.js
+// compileNameGate: an api without any disable list is NO gate at all;
+// an unknown preset denies everything — fail closed).
+function gateWarnings(api) {
+  const w = [];
+  if (api == null) {
+    w.push({ level: 'bad', text: 'No "api" key — every page holds an RPC channel to the full backend. This is the one config that must not ship.' });
+    return w;
+  }
+  if (typeof api === 'string') {
+    if (api === 'none') w.push({ level: 'ok', text: 'Gate "none" — pages get nothing beyond the bootstrap read-back.' });
+    else if (api === 'all') w.push({ level: 'bad', text: 'Gate "all" — every method open to every page.' });
+    else if (api !== 'wrapper') w.push({ level: 'warn', text: `Unknown preset "${api}" — the runtime fails closed: everything is denied until this is fixed.` });
+  } else if (typeof api === 'object') {
+    const disable = api.disable ?? [];
+    if (api.preset && api.preset !== 'wrapper' && api.preset !== 'none' && api.preset !== 'all')
+      w.push({ level: 'warn', text: `Unknown preset "${api.preset}" — the runtime fails closed: everything is denied until this is fixed.` });
+    if (!Array.isArray(disable) || !disable.length)
+      w.push({ level: 'bad', text: 'No "disable" list — in the runtime this compiles to NO gate: every method is allowed.' });
+    if (api.origins && typeof api.origins === 'object')
+      w.push({ level: 'ok', text: 'Per-origin keyholes — origins matching no entry get nothing, so redirects inherit no access.' });
+    const on = JSON.stringify(api);
+    if (on.includes('"media.*') || on.includes("'media.*"))
+      w.push({ level: 'warn', text: 'media.* granted — on macOS this replaces the camera/mic consent prompt for those origins.' });
+  }
+  return w;
+}
+// Normalize any api shape (preset string / lists / per-origin keyholes) into
+// what the UI renders. The runtime's own semantics, restated: enable wins
+// over disable; "*" denies all; an unknown preset denies all.
+function gateNormalize(api) {
+  if (api == null) return { mode: 'absent' };
+  if (typeof api === 'string') return { mode: api === 'all' ? 'all' : api === 'none' ? 'none' : 'preset', preset: api };
+  if (Array.isArray(api)) return { mode: 'lists', disable: ['*'], enable: api };
+  return {
+    mode: 'object',
+    preset: api.preset ?? null,
+    disable: api.disable ?? [],
+    enable: api.enable ?? [],
+    origins: api.origins ?? null,
+  };
 }
 
 export const api = {
@@ -440,7 +517,7 @@ export const api = {
   // optional display title overrides the site's own <title>; an optional
   // badge selector mirrors the site's unread count onto the dock icon; the
   // UA preset ('browser' | 'iphone' | 'engine') counters UA-sniffing.
-  async wrap({ parent, url, dir, title, ua, uaPreset, frameless, badge, menubar, alwaysTop, external, panel, dots }, app) {
+  async wrap({ parent, url, dir, title, ua, uaPreset, frameless, badge, menubar, alwaysTop, external, panel, dots, gate, gateMode, subdomains, media }, app) {
     const argv = ['wrap', url, dir, '--force']; // the Studio edits in place
     const resolved = resolveUA(uaPreset, ua);
     if (resolved) argv.push('--ua', resolved);
@@ -448,11 +525,15 @@ export const api = {
     if (panel) argv.push('--panel');
     if (alwaysTop) argv.push('--top');
     if (external) argv.push('--external', String(external));
+    if (subdomains) argv.push('--origins', 'subdomains');
     const r = await runStreaming(app, argv, { cwd: parent, label: 'wrap' });
     if (r.code === 0) {
       const root = parent + '/' + dir;
       if (title) await patchTitle(root, title);
-      await applyFinishing(root, { frameless, badge, external, panel, dots, menubar, top: alwaysTop });
+      await applyFinishing(root, {
+        frameless, badge, external, panel, dots, menubar, top: alwaysTop,
+        gate, gateMode, subdomains, media,
+      });
       if (pendingIcon) {
         // The user's pick beats whatever the site advertises.
         await writeIcon(root, pendingIcon);
@@ -662,6 +743,40 @@ export const api = {
   async writeFile({ path, text }) {
     await tjs.writeFile(path, enc.encode(String(text ?? '')));
     return true;
+  },
+
+  // The api gate of a project, normalized for the Gate tab: what's on per
+  // origin, the posture, and the runtime's own sharp edges as warnings.
+  async gate({ dir }) {
+    const p = dir.replace(/[\\/]+$/, '') + '/tinyjs.json';
+    let cfg;
+    try {
+      cfg = JSON.parse(dec.decode(await tjs.readFile(p)));
+    } catch {
+      throw new Error('not a tinyjs project — no readable tinyjs.json');
+    }
+    return {
+      api: cfg.api ?? null,
+      view: gateNormalize(cfg.api ?? null),
+      warnings: gateWarnings(cfg.api ?? null),
+      url: cfg.url ?? null,
+      preset: WRAPPER_PRESET,
+      extra: GATE_EXTRA,
+    };
+  },
+
+  // Write the api key back. Removing the gate entirely is possible but must
+  // be an explicit, confirmed act — the Studio refuses to do it silently.
+  async gatePatch({ dir, api, allowOpen }) {
+    const p = dir.replace(/[\\/]+$/, '') + '/tinyjs.json';
+    const cfg = JSON.parse(dec.decode(await tjs.readFile(p)));
+    if (api == null && !allowOpen) {
+      throw new Error('removing the gate opens the whole backend to the site — confirm explicitly');
+    }
+    cfg.api = api ?? undefined;
+    if (cfg.api === undefined) delete cfg.api;
+    await tjs.writeFile(p, enc.encode(JSON.stringify(cfg, null, 2) + '\n'));
+    return { ok: true, warnings: gateWarnings(cfg.api ?? null) };
   },
 
   // Show the project in Finder / Explorer / the file manager.

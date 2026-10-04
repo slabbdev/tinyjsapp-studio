@@ -76,10 +76,14 @@
       <nav class="tabs">
         <button class="tab" data-tab="create">Create</button>
         <button class="tab active" data-tab="wrap">Wrap</button>
+        <button class="tab" data-tab="gate" data-tip="The api gate of the selected project — what its pages may call">Gate</button>
         <span class="grow"></span>
         <button id="btnNew" class="new" data-tip="Clear the form, start fresh">+ New</button>
       </nav>
       <div class="inspector-scroll">
+        <section class="pane" id="gatePane" hidden>
+          <div id="gateBody"><p class="hint" style="margin-top:0">Select a project to inspect its api gate — what its pages may call, and what they can't.</p></div>
+        </section>
         <section class="pane">
           <div class="sec">Source</div>
           <div class="field" id="urlField">
@@ -132,6 +136,24 @@
               <option value="iphone">iPhone — mobile</option>
             </select>
           </div>
+          <div class="sec wrap-only">Permissions</div>
+          <div class="gatepicker wrap-only" id="gatePicker">
+            <label class="pill" data-tip="The site-wrapper posture: OS chrome, dialogs, notifications, its own store — nothing else"><input type="radio" name="gatePreset" value="wrapper" checked> wrapper</label>
+            <label class="pill" data-tip="The page gets nothing beyond its bootstrap read-back"><input type="radio" name="gatePreset" value="none"> none</label>
+            <label class="pill" data-tip="Hand-pick the verbs — you write the gate the runtime enforces"><input type="radio" name="gatePreset" value="custom"> custom…</label>
+          </div>
+          <div id="gateCustom" class="wrap-only" hidden>
+            <div class="gate-label">in the wrapper posture</div>
+            <div class="gate-row" id="gateIn"></div>
+            <div class="gate-label warn">outside the posture — grant deliberately</div>
+            <div class="gate-row" id="gateOut"></div>
+            <details id="gatePreview">
+              <summary>generated "api"</summary>
+              <pre id="gateJson" class="gate-json"></pre>
+            </details>
+          </div>
+          <label class="check wrap-only" data-tip="--origins subdomains — subdomains of the site's origin share its gate entry"><input type="checkbox" id="wrapSubdomains"> include subdomains</label>
+          <label class="check wrap-only" data-tip="Grants media.* to the site's origin — on macOS this replaces the camera/mic consent prompt"><input type="checkbox" id="wrapMedia"> camera &amp; microphone</label>
           <button id="btnGenerate" class="primary wide">Wrap site</button>
           <p class="hint">The preview mirrors every option. Run applies the
           form, then launches. The <code>wrap</code> command is detected
