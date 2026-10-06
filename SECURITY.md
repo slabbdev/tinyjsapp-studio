@@ -57,5 +57,6 @@ threat model instead.
 The Studio tracks the latest tinyjs release; security properties are those of
 the runtime you drive it with (`tinyjs --version`). Security-relevant runtime
 releases are called out in the
-[changelog](https://tinyjs.app/changelog) — v0.45.0 and v0.46.0 are the most
-recent hardening batches.
+[changelog](https://tinyjs.app/changelog) — v0.47.0/0.47.1 (hardening batch 2:
+proxy confinement, URL-scheme policy, malformed-message drops, bundled-installer
+updates) and v0.48.0 (printToPDF zone restrictions) are the most recent.

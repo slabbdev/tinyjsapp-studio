@@ -14,9 +14,11 @@ set -u
 SECS="${1:-22}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 WORK="$(mktemp -d /tmp/tjs-adv-XXXXXX)"
-# Must match the default path the hostile page probes (attacks.js T8) — the
-# wrap loads the bare URL, so the page's ?pwn= default is what fires.
+# Must match what the hostile page probes (attacks.js T8/T8b) — the wrap
+# URL carries both: pwn (temp, allowed zone since 0.48) and pwn2 (a path
+# OUTSIDE every allowed zone — $HOME — which must never be written).
 PWN="/tmp/tjs-adv-pwn.pdf"
+PWN2="$HOME/.tjs-adv-clobber-test.pdf"
 LOG="$WORK/dev.log"
 WRAP_PID=""; APP_PID=""; SERVE_PID=""
 
@@ -40,7 +42,7 @@ echo "[harness] serving hostile site on 127.0.0.1:8787 + 8788"
 if curl -s -m 2 -o /dev/null "http://127.0.0.1:8787/" 2>/dev/null; then
   echo "[harness] ABORT: something already listens on 8787 — kill it first (lsof -i :8787)"; exit 4
 fi
-rm -f "/tmp/tjs-adv-pwn.pdf"   # T8 ground truth must be fresh
+rm -f "/tmp/tjs-adv-pwn.pdf" "$HOME/.tjs-adv-clobber-test.pdf"  # ground truth must be fresh
 node "$HERE/serve.mjs" >"$WORK/serve.log" 2>&1 & SERVE_PID=$!
 sleep 1
 if ! curl -s -m 2 -o /dev/null "http://127.0.0.1:8787/" 2>/dev/null; then
@@ -51,7 +53,8 @@ echo "[harness] wrap -> $WORK/hostile"
 # Unique title per run: dev webviews persist a WKWebsiteDataStore keyed by
 # app title, so a repeated title replays last run's cached probe scripts.
 RUN_TAG="$(date +%s)"
-"$TJS" wrap "http://127.0.0.1:8787/?run=$RUN_TAG" "$WORK/hostile" --force \
+"$TJS" wrap "http://127.0.0.1:8787/?run=$RUN_TAG&pwn2=$PWN2" "$WORK/hostile" --force \
+  --origins exact \
   --title "ADV Probe $RUN_TAG" --ua "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15" \
   >"$WORK/wrap.log" 2>&1 &
 WRAP_PID=$!
@@ -76,15 +79,20 @@ else
   echo "LIVENESS  FAIL — app exited early (spoofed window verbs executed? see $LOG)"
 fi
 if [ -f "$PWN" ]; then
-  echo "T8/PDF    OPEN  — printToPDF wrote the page-named path (#36 still unfixed): $PWN"
+  echo "T8/temp   PASS  — direct write to temp (the allowed zone since 0.48): $PWN"
 else
-  echo "T8/PDF    accepted-no-file? re-checking after kill (the PDF write can race the render)…"
+  echo "T8/temp   accepted-no-file? re-checking after kill (the PDF write can race the render)…"
   kill "$APP_PID" 2>/dev/null; sleep 2; APP_PID=""
   if [ -f "$PWN" ]; then
-    echo "T8/PDF    OPEN  — printToPDF wrote the page-named path (#36 still unfixed): $PWN"
+    echo "T8/temp   PASS  — direct write to temp (the allowed zone since 0.48): $PWN"
   else
-    echo "T8/PDF    PASS  — printToPDF probe wrote nothing (#36 fixed or gated)"
+    echo "T8/temp   CHECK — no temp write (probe flake, or the zone rules changed upstream)"
   fi
+fi
+if [ -f "$PWN2" ]; then
+  echo "T8b/CLB   FAIL  — PROTECTED PATH WRITTEN (#36 regression): $PWN2"
+else
+  echo "T8b/CLB   PASS  — protected path untouched (save panel or rejection — 0.48 fix holds)"
 fi
 if grep -q "/exfil" "$WORK/serve.log" 2>/dev/null; then
   echo "T5b/EXFIL INFO  — the javascript: popup executed IN THE PAGE'S OWN ORIGIN (opener-inherit):"

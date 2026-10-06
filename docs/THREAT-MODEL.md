@@ -65,8 +65,12 @@ page's probes fail loudly, not silently.)
 | 7 | **Supply-chain pins** — txiki.js downloads are hash-pinned; the build cache can no longer be poisoned through a user-level write | 0.45.0 | [#26](https://github.com/tarwin/tinyjsapp/issues/26) |
 | 8 | **`tiny.store` hardening** — `__proto__`/`constructor` keys rejected (prototype pollution) | 0.45.0 | [changelog](https://tinyjs.app/changelog) |
 | 9 | **No ports. Nothing listens** — page↔backend RPC runs over a private Unix socket in a per-app temp dir (named pipes on Windows); nothing to scan | pre-1.0 | [tinyjs.app](https://tinyjs.app) |
-| 10 | **Signed builds, verified updates** — `tinyjs build` produces codesigned, notarization-ready bundles; the self-updater verifies sha256 **and** the code signature, swaps in place and rolls back on failure | pre-1.0 | [tinyjs.app](https://tinyjs.app) |
+| 10 | **Signed builds, verified updates** — `tinyjs build` produces codesigned, notarization-ready bundles; the self-updater verifies sha256 **and** the code signature, swaps in place and rolls back on failure; since 0.47 it runs the **bundled installer** — no per-update code download from the web | pre-1.0 · updater 0.47 | [tinyjs.app](https://tinyjs.app) |
 | 11 | **Camera/mic gating** — media capture goes through the gate (0.43.0) | 0.43.0 | [changelog](https://tinyjs.app/changelog) |
+| 12 | **`win.printToPDF` zone restrictions** — from non-app origins, direct writes only to Downloads (bare filenames), the app data folder, or temp; any other path opens a save panel, cancel rejects | 0.48.0 | [#36](https://github.com/tarwin/tinyjsapp/issues/36) — **verified live by the suite (T8/T8b)** |
+| 13 | **Malformed wire messages dropped** — launchers no longer pass parts of page messages to the backend unchecked; junk shapes die before the gate | 0.47.1 | [changelog](https://tinyjs.app/changelog) — **verified live (T10)** |
+| 14 | **Custom URL schemes policy-gated** — `mailto:` and friends route through `onNavigate` and are blocked by default; `'external'` hands them to the OS | 0.47.0 | [changelog](https://tinyjs.app/changelog) |
+| 15 | **`tiny-media://` proxy confined** — serves only the app's own pages and the dev server; wrapped sites need `"media.proxy"` in their keyhole | 0.47.0 | [#30](https://github.com/tarwin/tinyjsapp/issues/30) |
 
 ## The `wrapper` preset, verbatim
 
@@ -123,12 +127,13 @@ you chose.
 
 | Item | Status |
 |---|---|
-| `win.printToPDF` writes to any page-named path — arbitrary file clobbering under the `wrapper` preset (`win.*`) | [#36](https://github.com/tarwin/tinyjsapp/issues/36) — **open**; the adversarial suite probes it (T3) and expects it to *fail* until fixed |
-| Hardening batch 2: unauthenticated `tiny-media://` CORS-bypass proxy, navigation-scheme bypass, `tinyjs update` = `curl \| sh`, setup.sh /tmp races, api-gate edges | [#30](https://github.com/tarwin/tinyjsapp/issues/30) — open |
-| Windows release/update artifacts unsigned — no provenance anchor | [#19](https://github.com/tarwin/tinyjsapp/issues/19), fix in flight [#33](https://github.com/tarwin/tinyjsapp/pull/33) |
-| Media permission auto-grant in bundled apps (origin-consent question) | [#24](https://github.com/tarwin/tinyjsapp/issues/24) — open |
+| `win.printToPDF` arbitrary-path clobbering | **Fixed in 0.48.0** — writes confined to Downloads/app-data/temp, save panel elsewhere. [#36](https://github.com/tarwin/tinyjsapp/issues/36) closed; the suite's T8/T8b pair proves it from outside (temp writes, protected path doesn't) |
+| Hardening batch 2 (tiny-media proxy, navigation schemes, `curl \| sh` updater, setup.sh races, api-gate edges) | **Shipped in 0.47.0/0.47.1** — [#30](https://github.com/tarwin/tinyjsapp/issues/30) closed |
+| Media permission auto-grant in bundled apps | [#24](https://github.com/tarwin/tinyjsapp/issues/24) closed — media goes through the gate |
+| Windows release/update artifacts unsigned — no provenance anchor | [#19](https://github.com/tarwin/tinyjsapp/issues/19) — **open** (PR #33 closed unmerged) |
+| Self-update zip integrity: the hash currently comes from the same host as the zip | [#40](https://github.com/tarwin/tinyjsapp/issues/40) — **open** |
 | Windows storage isolation shipped 0.45 without migration — wrapped sites ask to re-login once after upgrading | [#29](https://github.com/tarwin/tinyjsapp/issues/29) — by-design tradeoff, pairs with the Studio's "Reset site data" action |
-| DOM popups (config `"popups": "window"`) execute `javascript:` URLs in the page's **own** origin — opener-inherit, so no privilege gain (same wrapper gate); but the 0.46 `win.open` URL screening covers the bridge path, not DOM popups. Meanwhile `file:` popup URLs are re-keyed onto the wrapped origin (observed live: `file:///etc/passwd` → `http://<origin>/etc/passwd`, 404). | Surfaced by the adversarial suite (T5b) — observation, to confirm upstream |
+| DOM popups (config `"popups": "window"`) execute `javascript:` URLs in the page's **own** origin — opener-inherit, so no privilege gain (same wrapper gate); but the 0.46 `win.open` URL screening covers the bridge path, not DOM popups. Meanwhile `file:` popup URLs are re-keyed onto the wrapped origin (observed live: `file:///etc/passwd` → `http://<origin>/etc/passwd`, 404). Re-verified on 0.50. | Surfaced by the adversarial suite (T5b) — observation, to confirm upstream |
 
 A published threat model with open items beats a marketing page with none —
 that is why this table exists. Each row flips to "fixed in X" as releases

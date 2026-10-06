@@ -403,7 +403,7 @@ const WRAPPER_PRESET = [
 // UI says why each one asks for caution (media.* replaces the OS consent
 // prompt on macOS; the rest touch the machine or its secrets).
 const GATE_EXTRA = [
-  { verb: 'media.*', why: 'camera & mic — on macOS this keyhole replaces the per-site consent prompt' },
+  { verb: 'media.*', why: 'camera & mic — on macOS this keyhole replaces the per-site consent prompt; a site using tiny.proxyURL also needs "media.proxy"' },
   { verb: 'clip.read', why: 'read the clipboard — anything the user copied, any app' },
   { verb: 'fs.*', why: 'the filesystem — files, everywhere the user can' },
   { verb: 'debug.get', why: 'secrets & automation — clipboard, wifi, frontmost app, other windows' },
@@ -525,7 +525,9 @@ export const api = {
     if (panel) argv.push('--panel');
     if (alwaysTop) argv.push('--top');
     if (external) argv.push('--external', String(external));
-    if (subdomains) argv.push('--origins', 'subdomains');
+    // Always explicit: tinyjs 0.50 made wrap ask about subdomains on a TTY —
+    // the Studio runs it piped, so we decide here, never in a prompt.
+    argv.push('--origins', subdomains ? 'subdomains' : 'exact');
     const r = await runStreaming(app, argv, { cwd: parent, label: 'wrap' });
     if (r.code === 0) {
       const root = parent + '/' + dir;

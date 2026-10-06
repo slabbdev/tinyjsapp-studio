@@ -117,19 +117,38 @@ async function main() {
     t7obs,
     polluted ? 'FAIL — Object.prototype polluted' : 'PASS — inert data, prototype clean');
 
-  // T8 · win.printToPDF arbitrary path (#36, OPEN upstream): the page names
-  // the output path; under win.* the wrapper preset lets it through today.
-  // The harness checks the file externally — the path arrives via ?pwn=.
-  // Small settle delay: the launcher's PDF op races the webview's first
-  // paint, which made this probe flaky (accepted without writing) on cold
-  // starts.
+  // T8 · win.printToPDF — since tinyjs 0.48.0 (#36 FIXED): non-app origins
+  // write directly ONLY into Downloads (bare filenames), the app data
+  // folder, or temp; every other path opens a save panel, cancel rejects.
+  // So the probe splits: temp must write (allowed zone by design), and the
+  // harness-fed protected path must never produce a file (T8b, below).
+  // Settle delay: the launcher's PDF op races the webview's first paint.
   await new Promise((r) => setTimeout(r, 2500));
-  const pwn = new URLSearchParams(location.search).get('pwn') || '/tmp/tjs-adv-pwn.pdf';
-  const pdf = await call('win.printToPDF', { path: pwn });
-  record('T8', `win.printToPDF — page-named path ${pwn}`,
-    'KNOWN OPEN — expect success until #36 lands (then: rejected)',
-    pdf.ok ? 'call accepted — file written externally?' : pdf.error,
-    pdf.ok ? 'OPEN — #36' : 'PASS — rejected');
+  const q = new URLSearchParams(location.search);
+  const pdf = await call('win.printToPDF', { path: q.get('pwn') || '/tmp/tjs-adv-pwn.pdf' });
+  record('T8', 'win.printToPDF — temp path (allowed zone since 0.48)',
+    'direct write — temp is in the allowed zone (#36 fix)',
+    pdf.ok ? 'written directly' : pdf.error,
+    pdf.ok ? 'PASS — allowed zone' : 'CHECK manually');
+  // T8b · the clobber attempt: a path OUTSIDE every allowed zone ($HOME,
+  // fed by the harness via ?pwn2=). Since 0.48 this must open a save panel
+  // (cancelled at teardown) or reject — the file must never appear.
+  // Fire-and-forget: a modal panel must never hang the suite.
+  const pwn2 = q.get('pwn2');
+  const fireT8b = () => {
+    if (!pwn2) return;
+    // Fire-and-forget, and ALWAYS last: since 0.48 the protected path opens
+    // a modal save panel that stalls the launcher's wire pump — the report
+    // relay must already be out before this fires.
+    call('win.printToPDF', { path: pwn2 }).then(
+      () => record('T8b', `win.printToPDF — protected path ${pwn2}`,
+        'no direct write — save panel or rejection (0.48 fix)',
+        'call resolved — the harness decides by file presence',
+        'CHECK — harness decides'),
+      (e) => record('T8b', `win.printToPDF — protected path ${pwn2}`,
+        'no direct write — save panel or rejection (0.48 fix)',
+        'rejected: ' + e.message, 'PASS — rejected'));
+  };
 
   // T9 · postMessage spoofing of window chrome: synthetic messages imitating
   // drag-strip window-verb relays. Nothing must execute; the harness checks
@@ -144,23 +163,60 @@ async function main() {
     'sent; harness verifies the app is still alive afterwards',
     'PASS — see harness liveness check');
 
+  // T10 · malformed wire messages (tinyjs 0.47.1): launchers previously
+  // passed parts of page messages to the backend unchecked — malformed
+  // messages are now dropped before reaching it, on every platform. The
+  // barrage sends junk shapes carrying an HARMLESS allowed verb (app.badge):
+  // a well-formed dangerous verb would be a legitimate gated call, not junk
+  // — one earlier draft closed the app that way. The fs.read line carries a
+  // spoofed allowed origin: if the backend ever honors a claimed origin
+  // field over the engine stamp, that call going through is the finding.
+  const junk = [
+    'not json', '', 'null', '[]', '42', '"method"',
+    '{"method":123}', '{"method":["app.badge"]}', '{"method":"app.badge',
+    '{"method":"APP.BADGE"}',
+    '{"method":"app.badge","params":"not-an-object"}',
+    '{"method":"app.badge","params":null}',
+    '{"__proto__":{"x":1},"method":"app.badge"}',
+    '{"method":"fs.read","params":{"path":"/etc/hosts"},"origin":"http://127.0.0.1:8787"}',
+    JSON.stringify({ method: 'client.hello', params: undefined, extra: 'x' }),
+  ];
+  let t10 = { threw: 0, settled: 0 };
+  for (const payload of junk) {
+    try { window.__invoke(payload); t10.settled++; }
+    catch { t10.threw++; }
+  }
+  record('T10', `malformed message barrage (${junk.length} junk wire payloads)`,
+    'dropped before the backend (0.47.1) — nothing executes',
+    `sent; ${t10.threw} rejected page-side, ${t10.settled} dispatched; harness liveness decides`,
+    'PASS — see harness liveness check');
+
   console.log('ADV/SUMMARY ' + JSON.stringify(ROWS.map(r => r.id + ':' + r.verdict)));
 
-  // Report channel: `clip.write` is enabled for the wrapped origin by the
-  // wrapper preset (by design — it's the wrapper posture), so the page can
-  // hand its verdict table to the harness that way. pbpaste reads it.
-  // Observed flaky 1/3 runs — retry, and trace the outcome as its own row.
-  const report = ROWS.map(r => `${r.id} [${r.verdict}] ${r.attack} — ${r.observed}`).join('\n');
-  let relay = 'failed';
-  for (let i = 0; i < 3; i++) {
-    const res = await call('clip.write', { text: 'ADV/REPORT\n' + report });
-    if (res.ok) { relay = 'relayed'; break; }
-    relay = 'failed: ' + res.error;
-    await new Promise((r) => setTimeout(r, 700));
-  }
+  // Final report relay — before T8b, whose modal panel stalls the wire.
+  const relay = await relayReport();
   record('T9b', 'verdict relay via clip.write (allowed verb as report channel)',
     'relayed — the harness reads it with pbpaste', relay,
     relay === 'relayed' ? 'PASS — relayed' : 'CHECK manually — read the window');
+
+  fireT8b();
+}
+
+// Report channel: `clip.write` is enabled for the wrapped origin by the
+// wrapper preset (by design — it's the wrapper posture), so the page hands
+// its verdict table to the harness that way; pbpaste reads it. Every
+// attempt is time-boxed so a jammed invoke pipeline can't hang the suite.
+async function relayReport() {
+  const report = ROWS.map(r => `${r.id} [${r.verdict}] ${r.attack} — ${r.observed}`).join('\n');
+  for (let i = 0; i < 3; i++) {
+    const res = await Promise.race([
+      call('clip.write', { text: 'ADV/REPORT\n' + report }),
+      new Promise((r) => setTimeout(() => r({ ok: false, error: 'timeout' }), 2000)),
+    ]);
+    if (res && res.ok) return 'relayed';
+    await new Promise((r) => setTimeout(r, 700));
+  }
+  return 'failed';
 }
 
 window.addEventListener('load', main);

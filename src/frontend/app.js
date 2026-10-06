@@ -286,7 +286,7 @@ const WRAPPER_PRESET = ['notify', 'dialog.*', 'win.*', 'menu.*', 'tray.*', 'stor
   'system.requirements', 'system.info', 'app.info', 'app.badge', 'app.attention',
   'app.progress', 'sound.play', 'nowplaying.*', 'power.prevent', 'power.allow'];
 const GATE_EXTRA = [
-  { verb: 'media.*', why: 'camera & mic — on macOS this keyhole replaces the per-site consent prompt' },
+  { verb: 'media.*', why: 'camera & mic — on macOS this keyhole replaces the per-site consent prompt; a site using tiny.proxyURL also needs "media.proxy"' },
   { verb: 'clip.read', why: 'read the clipboard — anything the user copied, in any app' },
   { verb: 'fs.*', why: 'the filesystem — files, everywhere the user can' },
   { verb: 'debug.get', why: 'secrets & automation — clipboard, wifi, frontmost app, other windows' },
