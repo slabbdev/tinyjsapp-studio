@@ -42,7 +42,7 @@ windows — frameless or not, with whatever chrome you configured:
 
 **Everything in one place.** Projects sidebar (with a file tree per
 project), live preview stage, config inspector — sections Site, Window,
-Behavior.
+Behavior, Permissions.
 
 **The file offcanvas.** Click a file in a project's tree: images open as a
 preview, code files open in an editor with line numbers, code folding and
@@ -60,17 +60,43 @@ into a phone frame — you see the mobile layout before you wrap:
 ## What it does
 
 - **Create an app** — runs `tinyjs new` for you: the zero-dependency vanilla
-  templates, or a Vite + npm one (react/vue/svelte/solid, TypeScript).
+  templates, or a Vite + npm one (react/vue/svelte/solid/preact/lit/alpine,
+  TypeScript).
 - **Wrap a website** — runs `tinyjs wrap`: a site becomes a real desktop app
   (native window, downloads, popup handling) whose pages get **no** access to
   your machine beyond their own window and dialogs — that gate is tinyjs'
-  per-origin API policy, not a Studio promise.
+  per-origin API policy, not a Studio promise. The form drives it: unread
+  badge selector, open-in-browser domains, permission posture.
 - **Open an existing project** — point the Studio at any tinyjs project
   folder anywhere on disk; it joins the sidebar with all its actions, no
   files moved.
-- **Run, build, stop, duplicate, reveal** — drive `tinyjs dev` / `tinyjs
-  build` on the selected project, with every line of the CLI streamed live
-  into the window.
+- **Run, build, stop, duplicate, reset, reveal** — drive `tinyjs dev` /
+  `tinyjs build` on the selected project, with every line of the CLI
+  streamed live into the window. *Duplicate* clones a wrap into a separate
+  container (multi-account); *Reset data* wipes its cookies and site
+  storage, paths guarded to the app's own.
+
+## Security, published
+
+The gate is a feature here, not a footnote. The **Permissions** section
+picks the posture for a wrap — `wrapper` (recommended), `none`, or custom
+chips over the real wire methods, with the generated `api` config previewed
+as it will be written — and the **Gate** tab shows any project exactly what
+its pages may call: per-origin keyholes, a one-glance trust summary, and
+warnings for the runtime's sharp edges (an absent gate, an unknown preset,
+camera/mic consent).
+
+Because "is it secure?" deserves evidence, not adjectives:
+
+- [docs/THREAT-MODEL.md](docs/THREAT-MODEL.md) — every guarantee linked to
+  the tinyjs release that shipped it, and the open holes listed, not hidden.
+- [test/adversarial/](test/adversarial/) — a hostile page attacking our own
+  wraps, verified live: gate denials, subframe isolation, printToPDF zones
+  (hole #36 was published open here, then its fix was proven from the
+  outside), malformed-wire drops.
+- [The security page](https://slabbdev.github.io/tinyjsapp-studio/security.html)
+  tells it in user language.
+- Found something? [SECURITY.md](SECURITY.md) — privately, please.
 
 ## Requirements
 
@@ -82,7 +108,8 @@ the installed CLI by absolute path — no PATH editing, nothing else touched.
 
 - **wrap** shipped upstream in tinyjs v0.44.0. Older installs still report
   *not in this release yet* in the Wrap tab — Create / Run / Build carry on,
-  and the status bar shows whether your tinyjs has wrap.
+  and the status bar shows whether your tinyjs has wrap. The Studio is
+  developed and adversarially tested against tinyjs v0.50.
 - Developing on wrap? A tinyjsapp checkout is picked up automatically (see
   below) — or set `TINYJS_BIN`.
 
@@ -115,8 +142,9 @@ the WebKit (or WebView2) your OS already has.
 - [tinyjs](https://github.com/tarwin/tinyjsapp) by
   [Tarwin Stroh-Spijer](https://github.com/tarwin) — the tool, the runtime,
   and the `wrap` plumbing this Studio drives. Docs at [tinyjs.app](https://tinyjs.app).
-- The wrap command itself is being contributed upstream; this repo consumes
-  it, it does not reimplement it.
+- The `wrap` command this Studio drove as a proposal shipped upstream in
+  tinyjs v0.44.0 ([#20](https://github.com/tarwin/tinyjsapp/issues/20)) —
+  this repo consumes it, it does not reimplement it.
 
 ## Support
 
