@@ -524,19 +524,66 @@ $('gateBody').addEventListener('click', async (e) => {
   }
 });
 
+// --- the catalog: one-click recipes that prefill the Wrap form --------------
+
+async function renderCatalog() {
+  const body = $('catalogBody');
+  body.innerHTML = '<p class="hint" style="margin-top:0">Loading the catalog…</p>';
+  let recipes = [];
+  try { recipes = (await tiny.api.call('catalog')).recipes ?? []; }
+  catch (e) { body.innerHTML = `<p class="hint">${esc(String(e.message ?? e))}</p>`; return; }
+  if (!recipes.length) {
+    body.innerHTML = '<p class="hint" style="margin-top:0">No recipes found — catalog/recipes.json is missing from this install.</p>';
+    return;
+  }
+  const cats = [...new Set(recipes.map((r) => r.category))];
+  body.innerHTML = cats.map((c) => `
+    <div class="sec">${esc(c)}</div>
+    <div class="cat-row">${recipes.filter((r) => r.category === c).map((r) =>
+      `<button type="button" class="cat-item" data-id="${esc(r.id)}" data-tip="${esc(r.url)}">
+        <span class="ci-t">${esc(r.title)}</span>
+        ${r.external ? '<span class="ci-x">oauth ok</span>' : ''}
+      </button>`).join('')}
+    </div>`).join('') +
+    `<p class="hint">A recipe prefills the Wrap form — review, then hit Wrap site.
+    "oauth ok" means login domains open in your default browser instead of the
+    app. Add yours via PR to <code>catalog/recipes.json</code>.</p>`;
+  body.querySelectorAll('.cat-item').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const r = recipes.find((x) => x.id === btn.dataset.id);
+      if (!r) return;
+      document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === 'wrap'));
+      $('gatePane').hidden = true;
+      $('catalogPane').hidden = true;
+      mainPane.hidden = false;
+      state.source = 'wrap';
+      $('wrapUrl').value = r.url;
+      $('wrapName').value = r.id;
+      $('wrapTitle').value = r.title;
+      $('wrapExternal').value = r.external ?? '';
+      syncSubChoices();
+      syncWrapButton();
+      renderPreview();
+      log('recipe "' + r.title + '" loaded — review the form, then Wrap site', 'ok');
+    });
+  });
+}
+
 // --- tabs ------------------------------------------------------------------
 
-const mainPane = document.querySelector('.inspector-scroll .pane:not(#gatePane)');
+const mainPane = document.querySelector('.inspector-scroll .pane:not(#gatePane):not(#catalogPane)');
 
 document.querySelectorAll('.tab').forEach((tab) => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
     tab.classList.add('active');
-    const isGate = tab.dataset.tab === 'gate';
-    $('gatePane').hidden = !isGate;
-    mainPane.hidden = isGate;
-    if (isGate) { renderGate(); return; }
-    state.source = tab.dataset.tab;
+    const which = tab.dataset.tab;
+    $('gatePane').hidden = which !== 'gate';
+    $('catalogPane').hidden = which !== 'catalog';
+    mainPane.hidden = which === 'gate' || which === 'catalog';
+    if (which === 'gate') { renderGate(); return; }
+    if (which === 'catalog') { renderCatalog(); return; }
+    state.source = which;
     syncSubChoices();
     syncWrapButton();
     renderPreview();

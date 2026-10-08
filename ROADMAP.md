@@ -121,6 +121,13 @@ S6. **The proof post** (blog #2): "Is it secure like Tauri? We attacked the
 7. **Per-site CSS/JS manager**: list + editor per project, wired to `inject`.
 8. **Reader mode** toggle per wrap: backend fetch + extraction — the demo
    that a wrapper with a real backend can do things Chromium shells cannot.
+   *Design sketch:* a "Reader" menu item in the generated wrap → the app's
+   backend `tiny.fetch`es the current page's URL (no CORS, no CSP limits),
+   extracts title + article text (a small Readability-style pass — strip
+   nav/aside/script, score text blocks), and opens a local `reader.html`
+   window (bundled with the wrap) rendering the result. No ports, no
+   server: everything rides the existing bridge. Phase two: an offline
+   cache in `tiny.store` so a wrapped article reads on a plane.
 9. **Publish button**: `tinyjs publish` + auto-update manifest from the
    Studio — ToDesktop's paid pipeline, free.
 10. **Benchmarks** in the README: measured size/RAM/startup vs a WebCatalog

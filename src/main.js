@@ -792,10 +792,26 @@ export const api = {
     return true;
   },
 
+  // The recipe catalog: one-click wraps (community-contributed via PRs to
+  // catalog/recipes.json — Nativefier's CATALOG.md proved the demand).
+  // Recipes prefill the Wrap form; the user reviews before generating.
+  async catalog() {
+    const candidates = [];
+    try { candidates.push(new URL('../catalog/recipes.json', import.meta.url).pathname); } catch { }
+    try { candidates.push(new URL('./catalog/recipes.json', import.meta.url).pathname); } catch { }
+    candidates.push((tjs.cwd?.() ?? '.') + '/catalog/recipes.json');
+    for (const p of candidates) {
+      try {
+        const recipes = JSON.parse(dec.decode(await tjs.readFile(p)));
+        if (Array.isArray(recipes)) return { recipes };
+      } catch { /* try the next layout */ }
+    }
+    return { recipes: [] };
+  },
+
   // The api gate of a project, normalized for the Gate tab: what's on per
   // origin, the posture, and the runtime's own sharp edges as warnings.
-  async gate({ dir }) {
-    const p = dir.replace(/[\\/]+$/, '') + '/tinyjs.json';
+  async gate({ dir }) {    const p = dir.replace(/[\\/]+$/, '') + '/tinyjs.json';
     let cfg;
     try {
       cfg = JSON.parse(dec.decode(await tjs.readFile(p)));

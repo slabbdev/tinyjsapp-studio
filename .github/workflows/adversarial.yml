@@ -1,0 +1,43 @@
+name: adversarial
+
+# D5 — the proof runs itself: the adversarial suite on a macOS runner per
+# push to main and per release. Green badge + date on the security page.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['test/adversarial/**', 'src/**', '.github/workflows/adversarial.yml']
+  release:
+    types: [published]
+
+jobs:
+  suite:
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tinyjs
+        run: curl -fsSL https://tinyjs.app/install | sh
+
+      - name: Run the adversarial suite (v0.50.1)
+        run: |
+          TINYJS_BIN="$HOME/.tinyjs/tinyjs" sh test/adversarial/run.sh 35 2>&1 | tee suite-output.txt
+
+      - name: Assert the hard invariants
+        run: |
+          fail=0
+          grep -q "LIVENESS  PASS\|LIVENESS  INFO" suite-output.txt || { echo "liveness verdict missing"; fail=1; }
+          grep -q "LIVENESS  FAIL" suite-output.txt && { echo "liveness FAIL"; fail=1; }
+          grep -q "T8b/CLB   PASS" suite-output.txt || { echo "protected-path invariant broken"; fail=1; }
+          grep -q "T6b/RAW    PASS\|T6b/RAW    CHECK" suite-output.txt || { echo "subframe invariant missing"; fail=1; }
+          grep -q "T6b/RAW    FAIL" suite-output.txt && { echo "SUBFRAME LEAK"; fail=1; }
+          grep -q "ADV/REPORT" suite-output.txt || { echo "no page report relayed"; fail=1; }
+          exit $fail
+
+      - name: Upload the raw output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adversarial-suite-output
+          path: suite-output.txt

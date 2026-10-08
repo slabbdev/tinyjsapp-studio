@@ -78,11 +78,15 @@
       <nav class="tabs">
         <button class="tab" data-tab="create">Create</button>
         <button class="tab active" data-tab="wrap">Wrap</button>
+        <button class="tab" data-tab="catalog" data-tip="One-click recipes — review, then Wrap site">Catalog</button>
         <button class="tab" data-tab="gate" data-tip="The api gate of the selected project — what its pages may call">Gate</button>
         <span class="grow"></span>
         <button id="btnNew" class="new" data-tip="Clear the form, start fresh">+ New</button>
       </nav>
       <div class="inspector-scroll">
+        <section class="pane" id="catalogPane" hidden>
+          <div id="catalogBody"><p class="hint" style="margin-top:0">Loading the catalog…</p></div>
+        </section>
         <section class="pane" id="gatePane" hidden>
           <div id="gateBody"><p class="hint" style="margin-top:0">Select a project to inspect its api gate — what its pages may call, and what they can't.</p></div>
         </section>

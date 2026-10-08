@@ -45,6 +45,42 @@ jobs:
         if: runner.os != 'Windows'
         run: tinyjs build
 
+      # D4 — notarization runs only when the signing secrets exist; without
+      # them the build stays ad-hoc signed (today's default). Sam enables it
+      # by adding: APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID —
+      # plus a Developer ID Application certificate (base64 P12) in
+      # MACOS_CERTIFICATE with MACOS_CERTIFICATE_PWD, imported to a temp
+      # keychain here. "xcrun notarytool submit --wait" then staples the
+      # ticket so Gatekeeper opens the app without warnings.
+      - name: Import Developer ID certificate (macOS, optional)
+        if: runner.os == 'macOS' && env.MACOS_CERTIFICATE != ''
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+        run: |
+          echo "$MACOS_CERTIFICATE" | base64 --decode > /tmp/cert.p12
+          security create-keychain -p "$(openssl rand -hex 16)" build.keychain
+          security import /tmp/cert.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$(openssl rand -hex 16)" build.keychain
+          security list-keychains -d user -s build.keychain login.keychain
+
+      - name: Codesign + notarize (macOS, optional)
+        if: runner.os == 'macOS' && env.APPLE_ID != ''
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          app=$(find dist -maxdepth 1 -name "*.app" | head -1 | sed 's|^\./||')
+          identity=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)"/\1/')
+          [ -n "$identity" ] || { echo "no Developer ID identity in the keychain"; exit 1; }
+          codesign --force --deep --sign "$identity" "dist/$app"
+          ditto -c -k --keepParent "dist/$app" /tmp/notarize.zip
+          xcrun notarytool submit /tmp/notarize.zip \
+            --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple "dist/$app"
+
       - name: Build (Windows)
         if: runner.os == 'Windows'
         shell: pwsh

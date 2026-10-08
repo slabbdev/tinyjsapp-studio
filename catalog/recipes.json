@@ -1,0 +1,22 @@
+[
+  { "id": "notion", "title": "Notion", "url": "https://app.notion.so", "category": "Docs & notes", "external": "accounts.google.com, google.com/login" },
+  { "id": "linear", "title": "Linear", "url": "https://linear.app", "category": "Projects", "external": "accounts.google.com, github.com/login" },
+  { "id": "figma", "title": "Figma", "url": "https://figma.com", "category": "Design", "external": "accounts.google.com, google.com/login" },
+  { "id": "github", "title": "GitHub", "url": "https://github.com", "category": "Dev" },
+  { "id": "gitlab", "title": "GitLab", "url": "https://gitlab.com", "category": "Dev" },
+  { "id": "gmail", "title": "Gmail", "url": "https://mail.google.com", "category": "Email", "external": "accounts.google.com" },
+  { "id": "gcal", "title": "Google Calendar", "url": "https://calendar.google.com", "category": "Email", "external": "accounts.google.com" },
+  { "id": "gdrive", "title": "Google Drive", "url": "https://drive.google.com", "category": "Docs & notes", "external": "accounts.google.com" },
+  { "id": "gmaps", "title": "Google Maps", "url": "https://maps.google.com", "category": "Everyday", "external": "accounts.google.com" },
+  { "id": "whatsapp", "title": "WhatsApp", "url": "https://web.whatsapp.com", "category": "Chat" },
+  { "id": "telegram", "title": "Telegram", "url": "https://web.telegram.org", "category": "Chat" },
+  { "id": "slack", "title": "Slack", "url": "https://app.slack.com", "category": "Chat", "external": "slack.com/signin, accounts.google.com" },
+  { "id": "discord", "title": "Discord", "url": "https://discord.com/app", "category": "Chat", "external": "discord.com/login, accounts.google.com" },
+  { "id": "x", "title": "X", "url": "https://x.com", "category": "Social", "external": "x.com/i/flow" },
+  { "id": "ytmusic", "title": "YouTube Music", "url": "https://music.youtube.com", "category": "Music", "external": "accounts.google.com" },
+  { "id": "reddit", "title": "Reddit", "url": "https://reddit.com", "category": "Social" },
+  { "id": "chatgpt", "title": "ChatGPT", "url": "https://chatgpt.com", "category": "AI", "external": "auth0.openai.com, accounts.google.com, login.live.com" },
+  { "id": "claude", "title": "Claude", "url": "https://claude.ai", "category": "AI", "external": "claude.ai/login, accounts.google.com" },
+  { "id": "trello", "title": "Trello", "url": "https://trello.com", "category": "Projects", "external": "accounts.google.com, id.atlassian.com" },
+  { "id": "mastodon", "title": "Mastodon", "url": "https://mastodon.social", "category": "Social" }
+]

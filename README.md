@@ -72,11 +72,27 @@ into a phone frame — you see the mobile layout before you wrap:
   files moved. Coming from Nativefier (archived since 2023)?
   **Import Nativefier app…** reads its embedded config and prefills the
   wrap — see [MIGRATING.md](MIGRATING.md).
+- **Catalog** — one-click recipes (Notion, Linear, Figma, Gmail, WhatsApp,
+  ChatGPT…): the tab prefills the Wrap form, you review and generate. Add
+  yours via PR to `catalog/recipes.json`.
 - **Run, build, stop, duplicate, reset, reveal** — drive `tinyjs dev` /
   `tinyjs build` on the selected project, with every line of the CLI
   streamed live into the window. *Duplicate* clones a wrap into a separate
   container (multi-account); *Reset data* wipes its cookies and site
   storage, paths guarded to the app's own.
+
+## Measured, not claimed
+
+Same page, same signal, measured on real hardware —
+[methodology and script](docs/BENCHMARKS.md), run it yourself:
+
+| | TinyJS wrap | Electron shell |
+|---|---|---|
+| Disk | **8 MB** | 337 MB |
+| RAM (page live) | **49 MB** | 143 MB |
+
+Every Electron-based wrapper ships a Chromium per app. A wrap built here
+uses the webview your OS already ships — that gap *is* the product.
 
 ## Security, published
 
