@@ -48,16 +48,20 @@ In a hand-written `tinyjs.json`, an **absent `"api"` key allows every
 method**. Precedence, in one line: `enable` wins over `disable`; `"api":
 "wrapper"` is the site-wrapper posture. Both `tinyjs wrap` and the Studio's
 finishing pass always write a gate — but if you edit a generated config by
-hand, deleting `"api"` opens everything. (Enforced in the backend at a single
+hand, deleting `"api"` opens everything — and on macOS before 0.50.1 that
+meant every frame of the page, iframes included: keychain, AppleScript,
+clipboard (the hole 0.50.1 closed; macOS apps showing third-party iframes
+should update). (Enforced in the backend at a single
 chokepoint; denied calls **reject** with a readable reason, so a hostile
-page's probes fail loudly, not silently.)
+page's probes fail loudly, not silently. Subframes are stricter still:
+an `api.origins` key must name the iframe's origin for it to call anything.)
 
 ## What the runtime guarantees (and since when)
 
 | # | Guarantee | Shipped | Evidence |
 |---|---|---|---|
 | 1 | **Deny-by-default per-origin capability gate** — unlisted origins get nothing; the gate re-keys on the frame's actual origin | 0.38.0, tightened 0.42.1, 0.43.0 | [changelog](https://tinyjs.app/changelog) |
-| 2 | **Subframe token gating** — a hostile cross-origin iframe cannot post a hand-built message and be gated as the top frame | 0.46.0 | [#18](https://github.com/tarwin/tinyjsapp/issues/18) |
+| 2 | **Subframe gating, per platform** — a hostile cross-origin iframe cannot reach the backend: Linux drops untokened calls from tokened windows (0.46); WebView2 on Windows only delivers the top-level document's messages; macOS subframe calls are marked by the launcher and run only when an `api.origins` key names the iframe's origin — a preset or top-level lists alone give subframes nothing, and subframe replies no longer settle the top frame's pending calls | Linux 0.46.0 · macOS 0.50.1 · Windows n/a | [#18](https://github.com/tarwin/tinyjsapp/issues/18) — the macOS vector verified live by the suite (T6b) |
 | 3 | **`win.open` confinement** — a page can only open http(s) URLs or files inside its own frontend dir; `file:`, `javascript:`, `../` walks and UNC paths are refused | 0.46.0 | [#29](https://github.com/tarwin/tinyjsapp/issues/29) |
 | 4 | **Authenticated transport** — the app↔window pipe requires a one-time secret handshake; unauthenticated connections are dropped; single-instance pipes are per-user with ACLs (user + SYSTEM only) | 0.46.0 | [#29](https://github.com/tarwin/tinyjsapp/issues/29) |
 | 5 | **Storage isolation** — each app gets its own data store (per-app WKWebsiteDataStore on macOS; per-app WebView2 profile on Windows since 0.45). No shared cookies/localStorage/IndexedDB between apps | macOS always; Windows 0.45.0 | [#29](https://github.com/tarwin/tinyjsapp/issues/29) |

@@ -423,8 +423,11 @@ function renderGateView() {
     <div class="trust">${esc(trustFor(g.view))}</div>${fix}${entries.join('')}
     <button id="btnGateSave" class="primary wide" hidden>Save gate</button>
     <p class="hint">Chips are wire-method patterns the runtime enforces —
-    enable wins over disable. Saving writes the real <code>api</code> key in
-    tinyjs.json; nothing is abstracted away.</p>`;
+    enable wins over disable. Iframes are stricter: they only call the
+    bridge when an <code>api.origins</code> key names their origin — presets
+    and top-level lists give subframes nothing (tinyjs 0.50.1). Saving
+    writes the real <code>api</code> key in tinyjs.json; nothing is
+    abstracted away.</p>`;
 }
 
 $('gateBody').addEventListener('click', async (e) => {

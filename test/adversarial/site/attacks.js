@@ -89,12 +89,26 @@ async function main() {
       observed, observed === 'no window (null)' ? 'PASS — refused' : 'CHECK manually');
   }
 
-  // T6 · subframe gate borrow (tinyjs 0.46, #18): a cross-origin iframe
-  // calling the bridge from a stranger origin must be denied per-origin.
+  // T6 · subframe gate borrow: a cross-origin iframe (port 8788) must not
+  // reach the backend — neither via the injected bridge (window.tiny, T6)
+  // nor via the raw per-frame message handler (window.__invoke, T6b — the
+  // exact vector tinyjs 0.50.1 closed on macOS; on <=0.50.0 T6b LEAKS by
+  // design-of-the-era, so the verdict is version-aware, not a failure).
   const rep = await iframeProbe();
-  record('T6', 'cross-origin iframe bridge calls (port 8788)',
+  let t6 = rep, t6b = 'no report';
+  try {
+    const parsed = JSON.parse(rep);
+    t6 = parsed.t6 ?? rep;
+    t6b = parsed.t6b ?? 'no report';
+  } catch { /* old-style single-string report */ }
+  record('T6', 'cross-origin iframe bridge calls (window.tiny, port 8788)',
     'every call rejected — stranger origin has no gate entry',
-    rep, String(rep).startsWith('ALL BLOCKED') ? 'PASS — subframe gated' : 'FAIL');
+    t6, String(t6).startsWith('ALL BLOCKED') ? 'PASS — subframe gated' : 'FAIL');
+  record('T6b', 'cross-origin iframe RAW WKScriptMessageHandler call (shell.open)',
+    '<=0.50.0: rides the top gate — browser hits /raw-leak (the hole 0.50.1 closed) · >=0.50.1: dropped',
+    t6b,
+    String(t6b).startsWith('ALL BLOCKED') ? 'PASS — raw vector absent'
+      : 'CHECK — harness decides by server log /raw-leak');
 
   // T7 · tiny.store prototype pollution (tinyjs 0.45): __proto__ /
   // constructor keys must be rejected — or sanitized so nothing lands. The

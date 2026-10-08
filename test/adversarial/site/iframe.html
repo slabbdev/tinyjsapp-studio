@@ -5,10 +5,21 @@
 <script>
 'use strict';
 // Stranger-origin probe: this frame is served from port 8788, which is NOT
-// in the wrap's api.origins. Expected: either the bridge is not injected
-// here at all, or every call is denied per-origin — and this frame must not
-// be gated as the top frame's origin (tinyjs 0.46, #18).
+// in the wrap's api.origins. Expected: every path to the backend is denied
+// — and this frame must not be gated as the top frame's origin.
+//
+// T6  · the page-side bridge (window.tiny): either not injected here at
+//       all, or every call denied per-origin.
+// T6b · the RAW handler (window.__invoke): WebKit exposes the page's
+//       message handler to EVERY frame, so a hand-built call from here is
+//       the exact vector tinyjs 0.50.1 closed on macOS (before that, a
+//       subframe call rode the top frame's gate; replies even settled the
+//       top frame's pending calls). On <=0.50.0 this probe LEAKS by
+//       design-of-the-era — documented, not a suite failure.
 async function probe() {
+  const res = { t6: '', t6b: '' };
+
+  // ---- T6: the injected bridge ----
   const hasBridge = typeof window.tiny === 'object' && window.tiny && window.tiny.api;
   const call = async (method, params) => {
     try {
@@ -23,16 +34,32 @@ async function probe() {
     'app.badge': await call('app.badge', { count: 1 }),
   };
   const leaks = Object.entries(calls).filter(([, c]) => c.ok);
-  let verdict;
-  if (!hasBridge) {
-    verdict = 'ALL BLOCKED — bridge not injected into stranger-origin subframe (window.tiny undefined)';
-  } else if (leaks.length === 0) {
-    verdict = 'ALL BLOCKED — bridge present, every call rejected';
-  } else {
-    verdict = 'LEAK — executed: ' + leaks.map(([m, c]) => `${m}: ${c.detail}`).join(' | ');
+  if (!hasBridge) res.t6 = 'ALL BLOCKED — bridge not injected into stranger-origin subframe (window.tiny undefined)';
+  else if (leaks.length === 0) res.t6 = 'ALL BLOCKED — bridge present, every call rejected';
+  else res.t6 = 'LEAK — executed: ' + leaks.map(([m, c]) => `${m}: ${c.detail}`).join(' | ');
+
+  // ---- T6b: the raw WKScriptMessageHandler vector (the 0.50.1 hole) ----
+  // __invoke is injected main-frame-only (forMainFrameOnly:YES) — probing
+  // it from here is a false green. The REAL raw surface is the WebKit
+  // message handler itself, exposed to every frame. Wire format (from the
+  // launcher shim): seq ':' JSON. We call shell.open — allowed by the
+  // wrapper preset for the TOP frame, so if this subframe call rides the
+  // top gate (pre-0.50.1), the default browser hits
+  // http://127.0.0.1:8788/raw-leak and the HARNESS's server log proves it.
+  try {
+    const mh = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.tiny;
+    if (mh && typeof mh.postMessage === 'function') {
+      mh.postMessage('500:' + JSON.stringify({ method: 'shell.open', params: { url: 'http://127.0.0.1:8788/raw-leak?from=t6b' } }));
+      res.t6b = 'FIRED — raw handler accepted postMessage; harness decides by server log /raw-leak';
+    } else {
+      res.t6b = 'ALL BLOCKED — no message handler exposed to this subframe';
+    }
+  } catch (e) {
+    res.t6b = 'ALL BLOCKED — raw handler threw: ' + e.message;
   }
-  try { parent.postMessage(verdict, '*'); } catch (e) { /* nothing */ }
-  document.title = verdict;
+
+  try { parent.postMessage(JSON.stringify(res), '*'); } catch (e) { /* nothing */ }
+  document.title = res.t6.startsWith('ALL BLOCKED') && res.t6b.startsWith('ALL BLOCKED') ? 'BLOCKED' : 'LEAK';
 }
 window.addEventListener('load', () => setTimeout(probe, 300));
 </script>
