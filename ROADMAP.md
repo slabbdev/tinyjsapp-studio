@@ -152,10 +152,10 @@ S6. **The proof post** (blog #2): "Is it secure like Tauri? We attacked the
 
 The product plays are above; being #1 also takes being *found* and *chosen*.
 
-D1. **Nativefier migration** — Nativefier is archived (since 2023) and its
-   README says so: those users are captive and shopping. A `MIGRATING.md`
-   (flag-for-flag mapping) + a "import a Nativefier app" path in the Studio
-   turns their exit into our funnel.
+D1. ✅ **Nativefier migration** — `MIGRATING.md` (flag-for-flag mapping)
+   + the "Import Nativefier app…" button in the Studio (reads the source
+   app's embedded nativefier.json, prefills the Wrap form, logs what maps
+   and what needs re-entering). The SEO leg of the funnel is D3.
 D2. **Ecosystem anchor** — the Studio listed in tarwin/tinyjsapp-examples
    and the tinyjs docs as *the* GUI (with Tarwin's go); tinyjs's README
    links back. Inception story: the GUI built with tinyjs.

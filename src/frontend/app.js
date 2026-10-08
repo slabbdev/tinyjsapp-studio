@@ -131,6 +131,43 @@ $('btnOpenExisting').addEventListener('click', async () => {
   }
 });
 
+// Import a Nativefier-generated app: read its embedded config, prefill the
+// Wrap form (MIGRATING.md has the flag-for-flag story). The source app is
+// never touched; the user reviews and hits Wrap site.
+$('btnImportNativefier').addEventListener('click', async () => {
+  const dir = await tiny.dialog.pickFolder();
+  if (!dir) return;
+  let r;
+  try {
+    r = await tiny.api.call('importNativefier', { path: dir });
+  } catch (e) {
+    return log(String(e.message ?? e), 'err');
+  }
+  document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === 'wrap'));
+  state.source = 'wrap';
+  $('wrapUrl').value = r.url ?? '';
+  $('wrapName').value = (r.title ?? '').replace(/[^a-zA-Z0-9.-]/g, '-').toLowerCase();
+  $('wrapTitle').value = r.title ?? '';
+  if (r.ua) {
+    $('wrapUA').value = 'custom';
+    $('wrapUACustom').value = r.ua;
+  } else {
+    $('wrapUA').value = 'browser';
+    $('wrapUACustom').value = '';
+  }
+  $('uaCustomField').hidden = $('wrapUA').value !== 'custom';
+  $('wrapFrameless').checked = !!r.frameless;
+  $('wrapMenubar').checked = !!r.menubar;
+  $('wrapTray').hidden = !r.menubar;
+  $('wrapAlwaysTop').checked = !!r.alwaysTop;
+  syncSubChoices();
+  syncWrapButton();
+  renderPreview();
+  log(`imported Nativefier app "${r.title}" (${r.nativefierVersion ? 'electron ' + r.nativefierVersion : 'unknown version'})`, 'ok');
+  log('form prefilled — review, then Wrap site. Notes:', 'ok');
+  for (const n of r.notes) log('  · ' + n);
+});
+
 // --- your projects: every tinyjs project in the chosen folder --------------
 
 async function loadProjects() {
@@ -224,6 +261,7 @@ function fillWrapForm(p) {
   $('wrapName').value = p.dir;
   $('wrapTitle').value = p.title ?? '';
   $('wrapUA').value = p.uaPreset ?? 'browser';
+  $('uaCustomField').hidden = $('wrapUA').value !== 'custom';
   $('wrapFrameless').checked = p.frameless;
   $('wrapMenubar').checked = p.studio?.menubar ?? p.activation === 'accessory';
   $('wrapTray').hidden = !$('wrapMenubar').checked;
@@ -522,6 +560,7 @@ function collectConfig(dirOverride) {
   const frameless = $('wrapFrameless').checked;
   const menubar = wrap && $('wrapMenubar').checked;
   const mode = wrap ? gateMode() : undefined;
+  const uaPreset = wrap ? $('wrapUA').value : undefined;
   return {
     source: state.source,
     parent: state.parent,
@@ -529,7 +568,8 @@ function collectConfig(dirOverride) {
     template: wrap ? undefined : $('template').value,
     dir: dirOverride ?? dir,
     title: $('wrapTitle').value.trim() || undefined,
-    uaPreset: wrap ? $('wrapUA').value : undefined,
+    uaPreset: uaPreset === 'custom' ? undefined : uaPreset,
+    ua: uaPreset === 'custom' ? ($('wrapUACustom').value.trim() || undefined) : undefined,
     frameless,
     dots: frameless && $('wrapDots').value !== 'none',
     menubar,
@@ -594,6 +634,7 @@ function syncSubChoices() {
   $('tplField').hidden = wrap;
   document.querySelectorAll('.wrap-only').forEach((el) => { el.hidden = !wrap; });
   $('wrapTray').hidden = !menubar;
+  $('uaCustomField').hidden = !wrap || $('wrapUA').value !== 'custom';
   $('dotsField').hidden = !frameless || panel;
   if (panel) $('wrapFrameless').checked = true;
   syncGateUI();
@@ -604,6 +645,7 @@ $('wrapTray').addEventListener('change', () => {
   if ($('wrapTray').value === 'panel') $('wrapFrameless').checked = true;
 });
 $('wrapFrameless').addEventListener('change', syncSubChoices);
+$('wrapUA').addEventListener('change', syncSubChoices);
 $('wrapTray').addEventListener('change', () => {
   if ($('wrapTray').value === 'panel') $('wrapFrameless').checked = true;
 });
@@ -615,6 +657,8 @@ $('btnNew').addEventListener('click', () => {
   $('wrapName').placeholder = 'auto';
   $('wrapTitle').value = '';
   $('wrapUA').value = 'browser';
+  $('wrapUACustom').value = '';
+  $('uaCustomField').hidden = true;
   $('wrapFrameless').checked = true;
   $('wrapDots').value = 'dots';
   $('wrapMenubar').checked = false;
@@ -808,7 +852,7 @@ function renderPreview() {
 
 ['wrapUrl', 'wrapName', 'wrapTitle', 'wrapUA', 'wrapDots',
   'wrapFrameless', 'wrapMenubar', 'wrapTray', 'wrapAlwaysTop', 'template',
-  'wrapSubdomains', 'wrapMedia', 'wrapBadge', 'wrapExternal',
+  'wrapSubdomains', 'wrapMedia', 'wrapBadge', 'wrapExternal', 'wrapUACustom',
 ].forEach((id) => {
   const el = $(id);
   if (!el) return;

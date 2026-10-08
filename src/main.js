@@ -666,6 +666,51 @@ export const api = {
     return { dir: target, title: cfg.title };
   },
 
+  // Import a Nativefier-generated app: read its embedded nativefier.json
+  // and map what maps onto the Wrap form (Nativefier is archived since
+  // 2023 — its users are this Studio's natural next step; see MIGRATING.md).
+  // Read-only on the source app: the Studio prefills, the user wraps.
+  async importNativefier({ path }) {
+    const root = String(path ?? '').replace(/[\\/]+$/, '');
+    const candidates = [
+      root + '/Contents/Resources/app/nativefier.json', // macOS .app
+      root + '/resources/app/nativefier.json',          // Windows/Linux folder
+      root + '/nativefier.json',                        // bare output dir
+    ];
+    let raw = null, used = null;
+    for (const c of candidates) {
+      try {
+        raw = JSON.parse(dec.decode(await tjs.readFile(c)));
+        used = c;
+        break;
+      } catch { /* not this layout */ }
+    }
+    if (!raw) {
+      throw new Error('no nativefier.json found — is that a Nativefier-generated app?');
+    }
+    const notes = [];
+    const g = (k) => (raw[k] == null ? null : raw[k]);
+    if (g('counter') || g('badge')) {
+      notes.push('Nativefier polled the site for an unread count (--counter). Here, give the site\'s unread-count CSS selector in "Unread badge selector".');
+    }
+    if (g('inject')) notes.push('Your --inject files are not carried over — paste their rules into the generated project\'s inject.js.');
+    if (g('externalUrls')) notes.push('Nativefier used a regex for external URLs; here it\'s a comma-separated domain list: ' + JSON.stringify(String(g('externalUrls')).slice(0, 120)));
+    if (g('internalUrls')) notes.push('Unlisted domains stay in-app by default, which covers --internal-urls.');
+    if (g('basicAuthUsername') || g('basicAuthPassword')) notes.push('Basic-auth credentials are not carried over (they lived in the old app).');
+    notes.push('Log into the site once after wrapping — tinyjs gives each app its own storage container, so old cookies don\'t carry over.');
+    return {
+      url: g('targetUrl'),
+      title: g('name'),
+      ua: g('userAgentOverride'),
+      menubar: !!g('tray'),
+      alwaysTop: !!g('alwaysOnTop'),
+      frameless: !!g('hideWindowFrame'),
+      from: used,
+      nativefierVersion: g('electronVersionUsed') ?? null,
+      notes,
+    };
+  },
+
   // Open an EXISTING tinyjs project anywhere on disk: validated, then kept
   // in the store so it lists alongside the folder's projects (no files are
   // moved or copied).

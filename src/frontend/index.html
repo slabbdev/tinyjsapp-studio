@@ -32,6 +32,7 @@
           <button id="btnRescan">Rescan</button>
         </div>
         <button id="btnOpenExisting" data-tip="Add an existing tinyjs project from anywhere">Open existing project…</button>
+        <button id="btnImportNativefier" data-tip="Prefill the Wrap form from a Nativefier-generated app (see MIGRATING.md)">Import Nativefier app…</button>
       </div>
     </aside>
 
@@ -138,7 +139,12 @@
               <option value="browser" selected>browser — anti-sniffing</option>
               <option value="engine">engine — stock</option>
               <option value="iphone">iPhone — mobile</option>
+              <option value="custom">custom…</option>
             </select>
+          </div>
+          <div class="field wrap-only" id="uaCustomField" hidden>
+            <label for="wrapUACustom">Custom UA string</label>
+            <input id="wrapUACustom" type="text" placeholder="Mozilla/5.0 …" spellcheck="false">
           </div>
           <div class="field wrap-only" data-tip="CSS selector of the site's unread count — it mirrors onto the dock/taskbar badge">
             <label for="wrapBadge">Unread badge selector</label>

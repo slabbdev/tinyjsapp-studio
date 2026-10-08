@@ -69,7 +69,9 @@ into a phone frame — you see the mobile layout before you wrap:
   badge selector, open-in-browser domains, permission posture.
 - **Open an existing project** — point the Studio at any tinyjs project
   folder anywhere on disk; it joins the sidebar with all its actions, no
-  files moved.
+  files moved. Coming from Nativefier (archived since 2023)?
+  **Import Nativefier app…** reads its embedded config and prefills the
+  wrap — see [MIGRATING.md](MIGRATING.md).
 - **Run, build, stop, duplicate, reset, reveal** — drive `tinyjs dev` /
   `tinyjs build` on the selected project, with every line of the CLI
   streamed live into the window. *Duplicate* clones a wrap into a separate
