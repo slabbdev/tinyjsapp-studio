@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 env:
-  TINYJS_VERSION: v0.42.2
+  TINYJS_VERSION: v0.50.1
 
 jobs:
   build:

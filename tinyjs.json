@@ -3,7 +3,7 @@
   "title": "TinyJS App Studio",
   "size": "1150x840",
   "id": "app.tinyjsapp.studio",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "chrome": { "frame": false, "windowControls": false },
   "contextMenu": false
 }
