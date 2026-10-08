@@ -17,9 +17,9 @@
 //       top frame's pending calls). On <=0.50.0 this probe LEAKS by
 //       design-of-the-era — documented, not a suite failure.
 async function probe() {
-  const res = { t6: '', t6b: '' };
+  const res = { t6: '' };
 
-  // ---- T6: the injected bridge ----
+  // ---- T6: the injected bridge (passive — no raw calls here) ----
   const hasBridge = typeof window.tiny === 'object' && window.tiny && window.tiny.api;
   const call = async (method, params) => {
     try {
@@ -38,29 +38,31 @@ async function probe() {
   else if (leaks.length === 0) res.t6 = 'ALL BLOCKED — bridge present, every call rejected';
   else res.t6 = 'LEAK — executed: ' + leaks.map(([m, c]) => `${m}: ${c.detail}`).join(' | ');
 
-  // ---- T6b: the raw WKScriptMessageHandler vector (the 0.50.1 hole) ----
-  // __invoke is injected main-frame-only (forMainFrameOnly:YES) — probing
-  // it from here is a false green. The REAL raw surface is the WebKit
-  // message handler itself, exposed to every frame. Wire format (from the
-  // launcher shim): seq ':' JSON. We call shell.open — allowed by the
-  // wrapper preset for the TOP frame, so if this subframe call rides the
-  // top gate (pre-0.50.1), the default browser hits
-  // http://127.0.0.1:8788/raw-leak and the HARNESS's server log proves it.
+  try { parent.postMessage(JSON.stringify(res), '*'); } catch (e) { /* nothing */ }
+  document.title = res.t6.startsWith('ALL BLOCKED') ? 'BLOCKED' : 'LEAK';
+}
+
+// ---- T6b: the raw WKScriptMessageHandler vector (the 0.50.1 surface) ----
+// Fired ONLY on the parent's trigger, AFTER the verdict report has relayed:
+// a denied raw subframe call makes the dev app terminate within seconds
+// (runtime quirk, flagged upstream) — firing early killed the app mid-run
+// and took the report channel with it. The harness judges this probe by
+// external evidence alone: the "denied ... for subframe" line in dev.log
+// (gated) versus a /raw-leak hit in the server log (leak).
+window.addEventListener('message', (ev) => {
+  if (ev.data !== 'fire-raw') return;
   try {
     const mh = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.tiny;
     if (mh && typeof mh.postMessage === 'function') {
       mh.postMessage('500:' + JSON.stringify({ method: 'shell.open', params: { url: 'http://127.0.0.1:8788/raw-leak?from=t6b' } }));
-      res.t6b = 'FIRED — raw handler accepted postMessage; harness decides by server log /raw-leak';
+      document.title = 'RAW FIRED';
     } else {
-      res.t6b = 'ALL BLOCKED — no message handler exposed to this subframe';
+      document.title = 'RAW ABSENT';
     }
   } catch (e) {
-    res.t6b = 'ALL BLOCKED — raw handler threw: ' + e.message;
+    document.title = 'RAW THREW';
   }
-
-  try { parent.postMessage(JSON.stringify(res), '*'); } catch (e) { /* nothing */ }
-  document.title = res.t6.startsWith('ALL BLOCKED') && res.t6b.startsWith('ALL BLOCKED') ? 'BLOCKED' : 'LEAK';
-}
+});
 window.addEventListener('load', () => setTimeout(probe, 300));
 </script>
 </body>

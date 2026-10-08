@@ -54,18 +54,21 @@ in the harness's `/tmp/tjs-adv-*` dir (`wrap.log`, `dev.log`, `serve.log`).
 | T5b | `win.open('javascript:fetch(…/exfil)')` | **INFO — same-origin execution**: the popup runs in the opener's origin (no privilege gain — same wrapper gate). The 0.46 `win.open` screening covers the bridge path, not DOM popups — re-verified on 0.50, flagged upstream | serve.log `/exfil` hit |
 | T5c/d | `../` walk, UNC path | **manual** — handle returned, nothing fetched from a stranger host | serve.log |
 | T6 | cross-origin iframe (port 8788) calling the bridge | **PASS — subframe isolated**: stronger than expected — `window.tiny` is not even injected into the stranger-origin subframe | page verdict relayed via clipboard |
-| T6b | cross-origin iframe calling the RAW WebKit handler (`window.webkit.messageHandlers.tiny`, the `seq:json` wire format directly) | **PASS — gated, proven live**: the handler is reachable from the subframe and accepts the postMessage, and the backend stamps the call with the iframe's OWN origin — `tinyjs: denied "shell.open" for http://127.0.0.1:8788` in dev.log; the `shell.open` decoy URL (`/raw-leak`) never reaches the server. Probes the exact macOS vector the 0.50.1 release gated | dev.log denial + serve.log absence |
+| T6b | cross-origin iframe calling the RAW WebKit handler (`window.webkit.messageHandlers.tiny`, the `seq:json` wire format directly) | **PASS — gated, proven live**: fired post-report by parent trigger; the backend stamps the call with the iframe's OWN origin — `tinyjs: denied "shell.open" for subframe http://127.0.0.1:8788 (tinyjs.json "api".origins)` — and the `shell.open` decoy (`/raw-leak`) never reaches the decoy server. Probes the exact macOS vector the 0.50.1 release gated | dev.log denial + serve.log absence |
 | T7 | `tiny.store` `__proto__`/`constructor` pollution | **PASS — inert data**: keys persist as plain data, `Object.prototype` untouched (the 0.45 fix sanitizes rather than rejects) | page read-backs |
 | T8 | `win.printToPDF` into temp | **PASS — allowed zone**: direct write, by design since the 0.48 [#36](https://github.com/tarwin/tinyjsapp/issues/36) fix | harness filesystem check |
 | T8b | `win.printToPDF` at a protected path (`$HOME`) | **PASS — protected**: no file ever appears; save panel opens (and dies with the teardown) | harness filesystem check |
 | T9 | postMessage spoof barrage incl. fake `win.close` | **PASS — no effect**: app alive through the barrage; the backend is socket-only | harness liveness check |
 | T10 | 15 malformed wire payloads (junk shapes around an allowed verb, one with a spoofed origin field) | **PASS — dropped or rejected, nothing executes** (0.47.1 fix); the spoofed-origin canary is denied on the frame's real origin | harness liveness check |
 
-Runtime quirk surfaced by T6b (flagged upstream, not a security issue): after a
-DENIED raw subframe call, the dev app self-exits ~15–30 s later — after every
-probe has run and the verdict report has relayed. The harness classifies that
-as `LIVENESS INFO` (report relayed) versus `LIVENESS FAIL` (death with no
-report — the signature of an executed spoofed verb).
+Runtime quirk surfaced by T6b (flagged upstream via the maintainer, not a
+security issue): a DENIED raw subframe call is followed by dev-app
+termination — ~15–30 s later on the pre-0.50.1 build, within seconds on
+0.50.1. That is why T6b fires LAST, after the verdict report has relayed,
+and is judged by external evidence (the dev.log denial line vs a server
+log leak hit). The harness classifies late death as `LIVENESS INFO` (report
+relayed) versus `LIVENESS FAIL` (death with no report — the signature of an
+executed spoofed verb).
 
 ## Manual click-throughs (need eyes, not a harness)
 

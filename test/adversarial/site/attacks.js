@@ -32,12 +32,16 @@ async function call(method, params) {
 function blocked(res) { return !res.ok; }
 
 // ---- stranger-origin iframe: serves from the second port, reports back ----
+// The frame STAYS mounted: its raw-vector probe (T6b) is fired late, on the
+// parent's trigger, after the verdict report has relayed out.
+let advIframe = null;
 function iframeProbe() {
   return new Promise((resolve) => {
     const el = document.createElement('iframe');
+    advIframe = el;
     el.style.display = 'none';
     const other = `${location.protocol}//${location.hostname}:8788/iframe.html`;
-    const done = (observed) => { el.remove(); resolve(observed); };
+    const done = (observed) => resolve(observed);
     const timer = setTimeout(() => done('no report back within 8s'), 8000);
     window.addEventListener('message', (ev) => {
       if (ev.source !== el.contentWindow) return;
@@ -90,25 +94,16 @@ async function main() {
   }
 
   // T6 · subframe gate borrow: a cross-origin iframe (port 8788) must not
-  // reach the backend — neither via the injected bridge (window.tiny, T6)
-  // nor via the raw per-frame message handler (window.__invoke, T6b — the
-  // exact vector tinyjs 0.50.1 closed on macOS; on <=0.50.0 T6b LEAKS by
-  // design-of-the-era, so the verdict is version-aware, not a failure).
+  // reach the backend via the injected bridge. The RAW handler vector
+  // (T6b) is fired later, after the report relays — a denied raw subframe
+  // call terminates the dev app within seconds (runtime quirk, flagged
+  // upstream), and the harness judges T6b by external evidence alone.
   const rep = await iframeProbe();
-  let t6 = rep, t6b = 'no report';
-  try {
-    const parsed = JSON.parse(rep);
-    t6 = parsed.t6 ?? rep;
-    t6b = parsed.t6b ?? 'no report';
-  } catch { /* old-style single-string report */ }
+  let t6 = rep;
+  try { t6 = JSON.parse(rep).t6 ?? rep; } catch { /* old-style string */ }
   record('T6', 'cross-origin iframe bridge calls (window.tiny, port 8788)',
     'every call rejected — stranger origin has no gate entry',
     t6, String(t6).startsWith('ALL BLOCKED') ? 'PASS — subframe gated' : 'FAIL');
-  record('T6b', 'cross-origin iframe RAW WKScriptMessageHandler call (shell.open)',
-    '<=0.50.0: rides the top gate — browser hits /raw-leak (the hole 0.50.1 closed) · >=0.50.1: dropped',
-    t6b,
-    String(t6b).startsWith('ALL BLOCKED') ? 'PASS — raw vector absent'
-      : 'CHECK — harness decides by server log /raw-leak');
 
   // T7 · tiny.store prototype pollution (tinyjs 0.45): __proto__ /
   // constructor keys must be rejected — or sanitized so nothing lands. The
@@ -207,12 +202,17 @@ async function main() {
 
   console.log('ADV/SUMMARY ' + JSON.stringify(ROWS.map(r => r.id + ':' + r.verdict)));
 
-  // Final report relay — before T8b, whose modal panel stalls the wire.
+  // Final report relay — before the two destructive probes: T8b's modal
+  // panel stalls the wire pump, and a denied T6b raw subframe call
+  // terminates the app. The report must already be out when either fires.
   const relay = await relayReport();
   record('T9b', 'verdict relay via clip.write (allowed verb as report channel)',
     'relayed — the harness reads it with pbpaste', relay,
     relay === 'relayed' ? 'PASS — relayed' : 'CHECK manually — read the window');
 
+  if (advIframe && advIframe.contentWindow) {
+    try { advIframe.contentWindow.postMessage('fire-raw', '*'); } catch { /* gone */ }
+  }
   fireT8b();
 }
 

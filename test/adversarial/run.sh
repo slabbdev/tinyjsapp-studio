@@ -120,8 +120,13 @@ fi
 if grep -q "GET /raw-leak" "$WORK/serve.log" 2>/dev/null; then
   echo "T6b/RAW    FAIL  — SUBFRAME EXECUTED A BRIDGE CALL via the raw WebKit handler"
   echo "                  (the macOS hole tinyjs 0.50.1 closed — update the runtime): server saw /raw-leak"
+elif grep -aq "denied .* for subframe" "$LOG" 2>/dev/null; then
+  echo "T6b/RAW    PASS  — raw subframe call stamped with the iframe's own origin and DENIED"
+  grep -a "denied .* for subframe" "$LOG" | head -1 | sed 's/^/                  /'
+elif pbpaste 2>/dev/null | grep -q "RAW ABSENT"; then
+  echo "T6b/RAW    PASS  — no raw message handler exposed to the subframe"
 else
-  echo "T6b/RAW    PASS  — the raw handler call never executed (0.50.1 gating holds, or vector absent)"
+  echo "T6b/RAW    CHECK — no external evidence either way (app died before the trigger?)"
 fi
 echo "[harness] ---- page verdicts (relayed out via clip.write, an allowed verb) ----"
 if command -v pbpaste >/dev/null 2>&1; then
