@@ -64,7 +64,7 @@ S1. ✅ **Threat model, public** (`docs/THREAT-MODEL.md` + `SECURITY.md`). The
    updater), Windows artifacts aren't signed yet (#19/#33), and the backend
    process has full user access — no OS app sandbox. Honesty is the product.
    Plus `SECURITY.md` with GitHub private vulnerability reporting.
-S2. ✅ **Adversarial suite** (verified live 2026-10-04 — see test/adversarial/README.md for the observed matrix) (`test/adversarial/`): each attack class maps to a
+S2. ✅ **Adversarial suite** (verified live 2026-10-04, re-verified on v0.50.1 2026-10-08 — see test/adversarial/README.md for the observed matrix) (`test/adversarial/`): each attack class maps to a
    shipped fix, and we prove it holds *from outside the project* — a hostile
    iframe posting a hand-built message to borrow the top frame's gate (#18/
    0.46), `win.open` file:// escapes (#29/0.46), cross-app cookie/localStorage
@@ -98,15 +98,15 @@ S6. **The proof post** (blog #2): "Is it secure like Tauri? We attacked the
 
 ## Phase 1 — parity killers (Studio-level only, no upstream work)
 
-1. **Badge** — mechanism ✅ (finishing pass + gate exception), UI pending: "unread selector" field per wrap → generated inject watches it,
+1. ✅ **Badge**: "unread selector" field per wrap → generated inject watches it,
    pushes `app.badge(n)` / clears it.
 2. ✅ **Window options** row: menu-bar app (`accessory` + tray), always-on-top, panel mode.
 3. ✅ **UA presets**: desktop / mobile / iPhone dropdown (writes `userAgent`).
-4. **External links** — mechanism ✅, UI pending: optional comma-separated domain list → `onNavigate`
+4. ✅ **External links**: optional comma-separated domain list → `onNavigate`
    answers `'external'`; everything else stays in-app.
 5. ✅ **Duplicate app**: clone any project card into a new name/id — the
    multi-account story ("wrap the same site twice, sign in twice"), two clicks.
-6. **Reset site data** action per project: dev webviews persist a
+6. ✅ **Reset site data** action per project (button + guarded paths): dev webviews persist a
    WKWebsiteDataStore keyed by app title (~/Library/WebKit/<title>), so stale
    cookies survive re-wraps — a Google wrap kept serving its basic-HTML
    fallback through a cookie preference even after the UA fix. One button to
